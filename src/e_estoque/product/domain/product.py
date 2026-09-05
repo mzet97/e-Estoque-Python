@@ -1,13 +1,14 @@
-"""Product: entidade, eventos, critérios, views e porta de repositório."""
+"""Product: entidade, eventos, critérios e porta de repositório."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from typing import Protocol
 from uuid import UUID, uuid4
 
+from e_estoque.shared.application.read_models import CompanySummary, Detailed
 from e_estoque.shared.domain.checks import (
     audit,
     length,
@@ -24,6 +25,7 @@ EXCHANGE = "product-service"
 # ---- Domain Events (payload = wire format .NET) ----
 @dataclass(frozen=True, slots=True)
 class ProductCreated(DomainEvent):
+    # Paridade: o ProductCreated .NET NÃO inclui Image.
     id: UUID
     name: str
     description: str
@@ -34,10 +36,12 @@ class ProductCreated(DomainEvent):
     length: Decimal
     id_category: UUID
     id_company: UUID
+    occurred_on: datetime = field(default_factory=utcnow)
 
 
 @dataclass(frozen=True, slots=True)
 class ProductUpdated(DomainEvent):
+    # Paridade: o handler .NET passa Image ao evento, mas o evento descarta o valor.
     id: UUID
     name: str
     description: str
@@ -46,9 +50,9 @@ class ProductUpdated(DomainEvent):
     weight: Decimal
     height: Decimal
     length: Decimal
-    image: str
     id_category: UUID
     id_company: UUID
+    occurred_on: datetime = field(default_factory=utcnow)
 
 
 # ---- Entity ----
@@ -60,7 +64,7 @@ class Product(Entity):
 
     def __init__(
         self,
-        id: UUID,  # noqa: A002
+        id: UUID,  # noqa: A002 - identidade do .NET é "Id"
         name: str,
         description: str,
         short_description: str,
@@ -162,7 +166,7 @@ class Product(Entity):
         self.register_event(
             ProductUpdated(
                 self.id, name, description, short_description, price, weight,
-                height, length, image, id_category, id_company,
+                height, length, id_category, id_company,
             )
         )
         self.validate()
@@ -194,9 +198,11 @@ class Product(Entity):
             self.mark_valid()
 
 
-# ---- Criteria / Views / Port ----
+# ---- Criteria / Port ----
 @dataclass(frozen=True, slots=True)
 class ProductCriteria:
+    """Filtros de igualdade exata do SearchProductQuery (.NET, sem filtro de Image)."""
+
     id: UUID | None = None
     name: str | None = None
     description: str | None = None
@@ -215,64 +221,42 @@ class ProductCriteria:
     size: int = 10
 
 
-@dataclass(frozen=True, slots=True)
-class ProductViewCategory:
-    id: UUID
-    name: str
-    description: str
-    short_description: str
-    created_at: datetime
-    updated_at: datetime | None
-    deleted_at: datetime | None
-
-
-@dataclass(frozen=True, slots=True)
-class ProductViewCompany:
-    id: UUID
-    name: str
-    doc_id: str
-    email: str
-    description: str
-    phone_number: str
-    company_address: "ProductViewCompany.Address | None"
-
-    @dataclass(frozen=True, slots=True)
-    class Address:
-        street: str
-        number: str
-        complement: str
-        neighborhood: str
-        district: str
-        city: str
-        country: str
-        zip_code: str
-        latitude: str
-        longitude: str
-
-    created_at: datetime
-    updated_at: datetime | None
-    deleted_at: datetime | None
-
-
-@dataclass(frozen=True, slots=True)
-class ProductViewData:
-    product: Product
-    category: ProductViewCategory | None
-    company: ProductViewCompany | None
-
-
 class CompanyReader(Protocol):
     """Verificação de existência de Company (referencial do Product)."""
 
     async def exists(self, company_id: UUID) -> bool: ...
 
 
+class CategoryReader(Protocol):
+    """Verificação de existência de Category (referencial do Product)."""
+
+    async def exists(self, category_id: UUID) -> bool: ...
+
+
 class ProductRepository(Protocol):
     async def save(self, product: Product) -> None: ...
+
     async def find_by_id(self, product_id: UUID) -> Product | None: ...
-    async def find_detailed_by_id(self, product_id: UUID) -> ProductViewData | None: ...
-    async def search(self, criteria: ProductCriteria) -> SearchResult[ProductViewData]: ...
+
+    async def find_detailed_by_id(self, product_id: UUID) -> Detailed[Product] | None: ...
+
+    async def search(self, criteria: ProductCriteria) -> SearchResult[Detailed[Product]]: ...
+
     async def search_gridify(
-        self, node: object, order: object, page: int, size: int
-    ) -> SearchResult[ProductViewData]: ...
+        self, filter_text: str | None, order_text: str | None, page: int, size: int
+    ) -> SearchResult[Detailed[Product]]: ...
+
     async def delete_hard(self, product_id: UUID) -> None: ...
+
+
+# CompanySummary reexportado para tipagem dos adapters (contrato de leitura compartilhado).
+__all__ = [
+    "EXCHANGE",
+    "CompanySummary",
+    "Detailed",
+    "Product",
+    "ProductCreated",
+    "ProductCriteria",
+    "ProductRepository",
+    "ProductUpdated",
+]

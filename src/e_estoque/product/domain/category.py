@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Protocol
 from uuid import UUID
 
-from e_estoque.shared.application.filtering import FilterNode, OrderTerm
+from typing import Protocol
+
 from e_estoque.shared.domain.checks import audit, length, provided
 from e_estoque.shared.domain.entity import DomainEvent, Entity, new_id, utcnow
+from e_estoque.shared.domain.search import SearchResult
 
 EXCHANGE = "category-service"
 
@@ -21,6 +22,7 @@ class CategoryCreated(DomainEvent):
     name: str
     description: str
     short_description: str
+    occurred_on: datetime = field(default_factory=utcnow)
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +31,7 @@ class CategoryUpdated(DomainEvent):
     name: str
     description: str
     short_description: str
+    occurred_on: datetime = field(default_factory=utcnow)
 
 
 # ---- Entity ----
@@ -37,7 +40,7 @@ class Category(Entity):
 
     def __init__(
         self,
-        id: UUID,
+        id: UUID,  # noqa: A002 - identidade do .NET é "Id"
         name: str,
         description: str,
         short_description: str,
@@ -63,7 +66,7 @@ class Category(Entity):
     @classmethod
     def rehydrate(
         cls,
-        id: UUID,
+        id: UUID,  # noqa: A002
         name: str,
         description: str,
         short_description: str,
@@ -72,8 +75,9 @@ class Category(Entity):
         deleted_at: datetime | None,
         is_deleted: bool,
     ) -> "Category":
-        category = cls(id, name, description, short_description, created_at,
-                       updated_at, deleted_at, is_deleted)
+        category = cls(
+            id, name, description, short_description, created_at, updated_at, deleted_at, is_deleted
+        )
         category.validate()
         return category
 
@@ -103,6 +107,8 @@ class Category(Entity):
 # ---- Criteria / Port ----
 @dataclass(frozen=True, slots=True)
 class CategoryCriteria:
+    """Filtros de igualdade exata do SearchCategoryQuery (.NET)."""
+
     id: UUID | None = None
     name: str | None = None
     description: str | None = None
@@ -115,19 +121,15 @@ class CategoryCriteria:
     size: int = 10
 
 
-@dataclass(frozen=True, slots=True)
-class SearchResult:
-    data: list[Category]
-    row_count: int
-    page: int
-    size: int
-
-
 class CategoryRepository(Protocol):
     async def save(self, category: Category) -> None: ...
+
     async def find_by_id(self, category_id: UUID) -> Category | None: ...
-    async def search(self, criteria: CategoryCriteria) -> SearchResult: ...
+
+    async def search(self, criteria: CategoryCriteria) -> SearchResult[Category]: ...
+
     async def search_gridify(
-        self, node: FilterNode | None, order: list[OrderTerm], page: int, size: int
-    ) -> SearchResult: ...
+        self, filter_text: str | None, order_text: str | None, page: int, size: int
+    ) -> SearchResult[Category]: ...
+
     async def delete_hard(self, category_id: UUID) -> None: ...

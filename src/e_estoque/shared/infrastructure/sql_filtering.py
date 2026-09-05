@@ -82,11 +82,11 @@ def _condition(
             case Operator.NE:
                 return col != condition.value
             case Operator.CONTAINS:
-                return low.like(f"%{condition.value.lower()}%")
+                return low.like(f"%{_escape_like(condition.value.lower())}%", escape="\\")
             case Operator.STARTS_WITH:
-                return low.like(f"{condition.value.lower()}%")
+                return low.like(f"{_escape_like(condition.value.lower())}%", escape="\\")
             case Operator.ENDS_WITH:
-                return low.like(f"%{condition.value.lower()}")
+                return low.like(f"%{_escape_like(condition.value.lower())}", escape="\\")
             case _:
                 raise ValidationError(f"Operator {op} not supported for strings")
     match op:
@@ -104,6 +104,11 @@ def _condition(
             return col <= value
         case _:
             raise ValidationError(f"Operator {op} not supported for {fdef.type}")
+
+
+def _escape_like(value: str) -> str:
+    """Escapa wildcards de LIKE para que o valor seja literal (defesa extra)."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def build_filter(

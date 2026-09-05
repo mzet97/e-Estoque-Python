@@ -18,7 +18,8 @@ KNOWN_EXCHANGES = (
     "inventory-service",
     "sale-service",
     "tax-service",
-    "notification-service",
+    "noticiation-service",  # typo do .NET (NotificationError/ErrorNotification/Auth)
+    "notification-service",  # grafia correta usada pelos handlers de Sales
 )
 
 
@@ -50,3 +51,14 @@ class RabbitPublisher:
         )
         message = aio_pika.Message(body=json.dumps(payload, ensure_ascii=False).encode())
         await exchange_obj.publish(message, routing_key=routing_key)
+
+    async def publish_raw(self, body: bytes, exchange: str, routing_key: str) -> None:
+        """Publica bytes já serializados (formato de wire controlado pelo chamador)."""
+        if self._connection is None:
+            await self.connect()
+        assert self._connection is not None
+        channel = await self._connection.channel()
+        exchange_obj = await channel.declare_exchange(
+            exchange, aio_pika.ExchangeType.TOPIC, durable=True
+        )
+        await exchange_obj.publish(aio_pika.Message(body=body), routing_key=routing_key)

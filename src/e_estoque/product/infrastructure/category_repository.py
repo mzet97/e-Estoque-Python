@@ -1,45 +1,53 @@
-"""Repositório SQLAlchemy de Category (delete = hard delete, parity .NET)."""
+"""Repositório SQLAlchemy de Category (delete = hard delete, paridade .NET).
+
+Paridades preservadas:
+- Search: filtros de igualdade exata; `short_description` filtra a coluna Description
+  (bug do SearchCategoryQueryHandler .NET preservado — MIGRATION-DIFFERENCES #10).
+- Count pós-filtro (comportamento do Repository<T> base .NET).
+- Filtros/ordenação sempre via expressões ORM parametrizadas (whitelist de campos).
+"""
 
 from __future__ import annotations
 
-import uuid
-from typing import Any
+from uuid import UUID
 
-from sqlalchemy import asc, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from e_estoque.product.domain.category import (
-    Category,
-    CategoryCriteria,
-    CategoryRepository,
-)
+from e_estoque.product.domain.category import Category, CategoryCriteria, CategoryRepository
 from e_estoque.product.infrastructure.models import CategoryModel
 from e_estoque.shared.application.filtering import parse_gridify_filter
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.sql_filtering import FieldDef, FieldType, build_filter
+from e_estoque.shared.infrastructure.paging import count_rows, page_rows
+from e_estoque.shared.infrastructure.sql_filtering import (
+    FieldDef,
+    FieldType,
+    build_filter,
+    order_columns,
+)
 
-ORDER_FIELDS = {
+FILTER_FIELDS = {
+    "id": FieldDef("id", FieldType.UUID),
     "name": FieldDef("name", FieldType.STRING),
     "description": FieldDef("description", FieldType.STRING),
     "shortdescription": FieldDef("short_description", FieldType.STRING),
     "createdat": FieldDef("created_at", FieldType.INSTANT),
     "updatedat": FieldDef("updated_at", FieldType.INSTANT),
     "deletedat": FieldDef("deleted_at", FieldType.INSTANT),
-    "id": FieldDef("id", FieldType.UUID),
     "isdeleted": FieldDef("is_deleted", FieldType.BOOLEAN),
 }
 
 
-def _to_domain(m: CategoryModel) -> Category:
+def _to_domain(model: CategoryModel) -> Category:
     return Category.rehydrate(
-        m.id,
-        m.name,
-        m.description,
-        m.short_description,
-        m.created_at,
-        m.updated_at,
-        m.deleted_at,
-        m.is_deleted,
+        model.id,
+        model.name,
+        model.description,
+        model.short_description,
+        model.created_at,
+        model.updated_at,
+        model.deleted_at,
+        model.is_deleted,
     )
 
 
@@ -50,17 +58,18 @@ class SqlCategoryRepository(CategoryRepository):
     async def save(self, category: Category) -> None:
         model = await self._session.get(CategoryModel, category.id)
         if model is None:
-            model = CategoryModel(
-                id=category.id,
-                name=category.name,
-                description=category.description,
-                short_description=category.short_description,
-                created_at=category.created_at,
-                updated_at=category.updated_at,
-                deleted_at=category.deleted_at,
-                is_deleted=category.is_deleted,
+            self._session.add(
+                CategoryModel(
+                    id=category.id,
+                    name=category.name,
+                    description=category.description,
+                    short_description=category.short_description,
+                    created_at=category.created_at,
+                    updated_at=category.updated_at,
+                    deleted_at=category.deleted_at,
+                    is_deleted=category.is_deleted,
+                )
             )
-            self._session.add(model)
             return
         model.name = category.name
         model.description = category.description
@@ -69,64 +78,60 @@ class SqlCategoryRepository(CategoryRepository):
         model.deleted_at = category.deleted_at
         model.is_deleted = category.is_deleted
 
-    async def find_by_id(self, category_id: uuid.UUID) -> Category | None:
+    async def find_by_id(self, category_id: UUID) -> Category | None:
         model = await self._session.get(CategoryModel, category_id)
-        if model is None:
-            return None
-        return _to_domain(model)
+        return None if model is None else _to_domain(model)
+
+    async def exists(self, category_id: UUID) -> bool:
+        stmt = select(CategoryModel.id).where(CategoryModel.id == category_id)
+        return (await self._session.scalar(stmt)) is not None
 
     async def search(self, criteria: CategoryCriteria) -> SearchResult[Category]:
         model = CategoryModel
         stmt = select(model)
+        if criteria.id is not None:
+            stmt = stmt.where(model.id == criteria.id)
         if criteria.name:
-            stmt = stmt.filter_by(name=criteria.name)
+            stmt = stmt.where(model.name == criteria.name)
         if criteria.description:
-            stmt = stmt.filter_by(description=criteria.description)
+            stmt = stmt.where(model.description == criteria.description)
+        # Paridade do bug .NET: ShortDescription do filtro aplica na coluna Description.
         if criteria.short_description:
-            stmt = stmt.filter_by(short_description=criteria.short_description)
-        if criteria.id:
-            stmt = stmt.filter_by(id=criteria.id)
-        if criteria.created_at:
-            stmt = stmt.filter_by(created_at=criteria.created_at)
-        if criteria.updated_at:
-            stmt = stmt.filter_by(updated_at=criteria.updated_at)
-        if criteria.deleted_at:
-            stmt = stmt.filter_by(deleted_at=criteria.deleted_at)
-        order_name = ORDER_FIELDS.get((criteria.order or "").lower(), "id")
-        stmt = stmt.order_by(asc(getattr(model, order_name)))
-        stmt = stmt.offset((criteria.page - 1) * criteria.size).limit(criteria.size)
-        rows = (await self._session.execute(stmt)).scalars().all()
-        total = (
-            await self._session.execute(select(func.count()).select_from(model))
-        ).scalar_one()
-        data = [_to_domain(r) for r in rows]
-        return SearchResult(data=data, row_count=total, page=criteria.page, size=criteria.size)
+            stmt = stmt.where(model.description == criteria.short_description)
+        if criteria.created_at is not None:
+            stmt = stmt.where(model.created_at == criteria.created_at)
+        if criteria.updated_at is not None:
+            stmt = stmt.where(model.updated_at == criteria.updated_at)
+        if criteria.deleted_at is not None:
+            stmt = stmt.where(model.deleted_at == criteria.deleted_at)
+
+        total = await count_rows(self._session, stmt)
+        # Order do .NET é sempre ascendente; default Id para paginação determinística.
+        stmt = stmt.order_by(*order_columns(criteria.order, model, FILTER_FIELDS))
+        rows = await page_rows(self._session, stmt, criteria.page, criteria.size)
+        return SearchResult(
+            data=[_to_domain(row) for row in rows],
+            row_count=total,
+            page=criteria.page,
+            size=criteria.size,
+        )
 
     async def search_gridify(
-        self,
-        filter_text: str | None,
-        order_text: str | None,
-        page: int,
-        size: int,
+        self, filter_text: str | None, order_text: str | None, page: int, size: int
     ) -> SearchResult[Category]:
         model = CategoryModel
         stmt = select(model)
-        node = parse_gridify_filter(filter_text)
-        if node is not None:
-            where = build_filter(node, model, ORDER_FIELDS)
-            if where is not None:
-                stmt = stmt.where(where)
-        order_name = ORDER_FIELDS.get((order_text or "").lower(), "id")
-        stmt = stmt.order_by(asc(getattr(model, order_name)))
-        stmt = stmt.offset((page - 1) * size).limit(size)
-        rows = (await self._session.execute(stmt)).scalars().all()
-        total = (
-            await self._session.execute(select(func.count()).select_from(model))
-        ).scalar_one()
-        data = [_to_domain(r) for r in rows]
-        return SearchResult(data=data, row_count=total, page=page, size=size)
+        where = build_filter(parse_gridify_filter(filter_text), model, FILTER_FIELDS)
+        if where is not None:
+            stmt = stmt.where(where)
+        total = await count_rows(self._session, stmt)
+        stmt = stmt.order_by(*order_columns(order_text, model, FILTER_FIELDS))
+        rows = await page_rows(self._session, stmt, page, size)
+        return SearchResult(
+            data=[_to_domain(row) for row in rows], row_count=total, page=page, size=size
+        )
 
-    async def delete_hard(self, category_id: uuid.UUID) -> None:
+    async def delete_hard(self, category_id: UUID) -> None:
         model = await self._session.get(CategoryModel, category_id)
         if model is not None:
             await self._session.delete(model)

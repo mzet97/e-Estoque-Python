@@ -7,6 +7,8 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 
+from e_estoque.shared.domain.search import SearchResult
+
 T = TypeVar("T")
 
 
@@ -67,8 +69,23 @@ class BaseResultList(_Camel, Generic[T]):
     message: str = ""
 
 
+def paged_view(result: SearchResult[T]) -> PagedResult:
+    """PagedResult do contrato a partir de um SearchResult de repositório."""
+    return PagedResult.create(result.page, result.size, result.row_count)
+
+
 def paged_search_bounds(page_index: int | None, page_size: int | None) -> tuple[int, int]:
-    """Defaults do .NET: pageIndex 1, pageSize 10, cap 1000."""
-    page = page_index if page_index and page_index >= 1 else 1
-    size = page_size if page_size and page_size >= 1 else 10
-    return page, min(size, 1000)
+    """Defaults do .NET: pageIndex 1, pageSize 10 (sem teto — paridade).
+
+    Valores inválidos (< 1) violam o contrato de paginação → ValidationError (400),
+    em vez do ArgumentOutOfRangeException→500 do .NET (BUG-FIX documentado).
+    """
+    from e_estoque.shared.domain.errors import ValidationError
+
+    if page_index is not None and page_index < 1:
+        raise ValidationError("Page index must be greater or equal to 1")
+    if page_size is not None and page_size < 1:
+        raise ValidationError("Page size must be greater or equal to 1")
+    page = page_index if page_index is not None else 1
+    size = page_size if page_size is not None else 10
+    return page, size

@@ -19,7 +19,11 @@ def _to_camel(name: str) -> str:
 def _serialize(value: Any) -> Any:
     if value is None or isinstance(value, (str, int, bool)):
         return value
-    if isinstance(value, (Decimal, UUID)):
+    if isinstance(value, Decimal):
+        # JsonSerializerDefaults.Web (.NET) emite decimal como número JSON.
+        integral = value == value.to_integral_value()
+        return int(value) if integral else float(value)
+    if isinstance(value, UUID):
         return str(value)
     if isinstance(value, datetime | date):
         return value.isoformat()
@@ -38,9 +42,17 @@ def _serialize(value: Any) -> Any:
     return str(value)
 
 
+def event_payload(event: Any) -> dict[str, Any]:
+    """Converte um dataclass de evento no dict camelCase (wire format .NET)."""
+    result = _serialize(event)
+    if not isinstance(result, dict):
+        raise TypeError(f"Event must serialize to an object, got {type(result).__name__}")
+    return result
+
+
 def serialize_event(event: Any) -> str:
     """Serializa um dataclass de evento para o payload publicado."""
-    return json.dumps(_serialize(event), ensure_ascii=False)
+    return json.dumps(event_payload(event), ensure_ascii=False)
 
 
 def to_dash_case(name: str) -> str:
