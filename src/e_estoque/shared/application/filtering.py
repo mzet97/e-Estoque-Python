@@ -5,7 +5,6 @@ Sem eval/exec — apenas parsing estruturado (proibição do §46 do master prom
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -119,54 +118,6 @@ def _parse_gridify_condition(condition: str) -> Condition:
             raise ValidationError(f"Invalid gridify filter: {condition}")
         return Condition(field_name, operator, _unquote(raw))
     raise ValidationError(f"Invalid gridify filter: {condition}")
-
-
-_FUNCTION = re.compile(r"(contains|startswith|endswith)\(\s*([A-Za-z_/]+)\s*,\s*'([^']*)'\s*\)")
-
-
-def parse_odata_filter(filter_text: str | None) -> FilterNode | None:
-    """Subset OData v4: eq/ne/gt/ge/lt/le, contains(), startswith(), endswith(), and/or."""
-    if not filter_text or not filter_text.strip():
-        return None
-    or_groups: list[FilterNode] = []
-    for or_part in re.split(r"\bor\b", filter_text, flags=re.IGNORECASE):
-        ands: list[FilterNode] = []
-        for and_part in re.split(r"\band\b", or_part, flags=re.IGNORECASE):
-            ands.append(_parse_odata_condition(and_part.strip()))
-        or_groups.append(ands[0] if len(ands) == 1 else And(children=ands))
-    return or_groups[0] if len(or_groups) == 1 else Or(children=or_groups)
-
-
-def _parse_odata_condition(condition: str) -> Condition:
-    match = _FUNCTION.fullmatch(condition)
-    if match:
-        operator = {
-            "contains": Operator.CONTAINS,
-            "startswith": Operator.STARTS_WITH,
-            "endswith": Operator.ENDS_WITH,
-        }[match.group(1)]
-        return Condition(_normalize_odata_field(match.group(2)), operator, match.group(3))
-    for op in (" ne ", " ge ", " le ", " eq ", " gt ", " lt "):
-        idx = condition.lower().find(op)
-        if idx > 0:
-            field_name = condition[:idx].strip()
-            raw = condition[idx + len(op) :].strip()
-            value = raw[1:-1] if raw.startswith("'") and raw.endswith("'") else raw
-            operator = {
-                "ne": Operator.NE,
-                "ge": Operator.GE,
-                "le": Operator.LE,
-                "gt": Operator.GT,
-                "lt": Operator.LT,
-                "eq": Operator.EQ,
-            }[op.strip()]
-            return Condition(_normalize_odata_field(field_name), operator, value)
-    raise ValidationError(f"Unsupported $filter expression: {condition}")
-
-
-def _normalize_odata_field(field_name: str) -> str:
-    path = field_name.lstrip("/")
-    return path.rsplit("/", maxsplit=1)[-1]
 
 
 def parse_order_by(order_by: str | None) -> list[OrderTerm]:

@@ -14,6 +14,7 @@ Baseline tecnológica verificada em 2026-09-04. Versões **resolvidas e travadas
 | aio-pika | 9.8+ | **10.0.1** |
 | redis-py | 7.0+ | **8.1.0** |
 | PyJWT (+crypto) | 2.12+ | **2.13.0** |
+| odata-query | 0.10+ | **0.10.0** (parser `$filter` OData v4 — ADR-013) |
 | httpx | 0.28+ | **0.28.1** |
 | prometheus-client | 0.24+ | **0.26.0** |
 | uvicorn | 0.40+ | **0.52.4** |

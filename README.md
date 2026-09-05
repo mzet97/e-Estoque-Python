@@ -56,8 +56,9 @@ classDiagram
 ## Stack
 
 Python 3.14 · FastAPI · Pydantic v2 (+ Settings) · SQLAlchemy 2 async · asyncpg · Alembic ·
-PostgreSQL 17 · aio-pika · redis-py · Keycloak (JWT via JWKS, PyJWT) · OpenTelemetry (opcional,
-extra `[otel]`) · Prometheus · pytest(+asyncio, cov) · Testcontainers · Ruff · mypy `strict` · uv.
+PostgreSQL 17 · aio-pika · redis-py · Keycloak (JWT via JWKS, PyJWT) · odata-query (OData `$filter`)
+· OpenTelemetry (opcional, extra `[otel]`) · Prometheus · pytest(+asyncio, cov) · Testcontainers ·
+Ruff · mypy `strict` · uv.
 
 ## Requisitos
 
@@ -106,7 +107,7 @@ EESTOQUE_SKIP_DOCKER=0 uv run pytest tests/integration   # Testcontainers (PG/Ra
 | Status | POST Categories → **201+Location**; demais POST → 200; PUT → 200; DELETE → 200 `{}` | paridade dos controllers .NET |
 | Envelope | `{success, message, data, pagedResult{...}}` (camelCase, página 1-based) | `BaseResult/BaseResultList/PagedResult` |
 | Erros | `{"error": msg}` (400/401/403/404/422/500) | `ExceptionMiddleware` |
-| OData | `/odata/{Sets}` com `$filter/$orderby/$top/$skip/$count/$select`, `/$count`, `Set(key)`, `/$metadata` | subset seguro (ADR-013), `$top≤1000` |
+| OData | `/odata/{Sets}` com `$filter/$orderby/$top/$skip/$count/$select`, `/$count`, `Set(key)`, `/$metadata` | subset seguro (ADR-013, `$filter` via `odata-query`), `$top≤1000` |
 | Ops | `/health` · `/health/live` · `/health/ready` · `/metrics` · `/docs` · `/openapi.json` | |
 
 ## Documentação SDD

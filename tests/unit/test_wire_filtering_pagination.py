@@ -16,7 +16,6 @@ from e_estoque.shared.application.filtering import (
     Condition,
     Operator,
     parse_gridify_filter,
-    parse_odata_filter,
     parse_order_by,
 )
 from e_estoque.shared.domain.entity import DomainEvent
@@ -128,26 +127,8 @@ def test_gridify_empty_returns_none() -> None:
     assert parse_gridify_filter("  ") is None
 
 
-# ---- OData parser ----
-def test_odata_parse_eq_and_contains() -> None:
-    node = parse_odata_filter("name eq 'refri' and contains(description,'gel')")
-    assert isinstance(node, And)
-    left, right = node.children
-    assert isinstance(left, Condition) and left.operator is Operator.EQ
-    assert left.field == "name"
-    assert isinstance(right, Condition) and right.operator is Operator.CONTAINS
-
-
-def test_odata_parse_or() -> None:
-    node = parse_odata_filter("startswith(name,'A') or price gt 10")
-    assert hasattr(node, "children")
-    children = node.children  # type: ignore[union-attr]
-    assert len(children) == 2
-
-
-def test_odata_unsupported_operator_raises() -> None:
-    with pytest.raises(ValidationError):
-        parse_odata_filter("name lol 'x'")
+# Os testes de $filter OData vivem em test_odata_filter_adapter.py (usa a lib
+# `odata-query` via build_odata_filter, executada contra sqlite).
 
 
 def test_parse_order_by() -> None:

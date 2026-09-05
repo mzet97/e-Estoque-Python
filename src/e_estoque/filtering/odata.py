@@ -18,11 +18,8 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from e_estoque.shared.application.filtering import (
-    Condition,
-    Operator,
-    parse_odata_filter,
-)
+from e_estoque.filtering.odata_filter import build_odata_filter
+from e_estoque.shared.application.filtering import Condition, Operator
 from e_estoque.shared.domain.errors import NotFoundError, ValidationError
 from e_estoque.shared.infrastructure.db import open_session
 from e_estoque.shared.infrastructure.paging import count_rows, first_row, page_rows
@@ -106,7 +103,7 @@ def build_router(sets: list[EntitySetSpec]) -> APIRouter:
         selected: list[str] | None,
     ) -> dict[str, Any]:
         stmt: Select[tuple[Any]] = select(spec.model)
-        where = build_filter(parse_odata_filter(filter_text), spec.model, spec.fields)
+        where = build_odata_filter(filter_text, spec.model, spec.fields)
         if where is not None:
             stmt = stmt.where(where)
         effective_top = min(top if top is not None else MAX_TOP, MAX_TOP)

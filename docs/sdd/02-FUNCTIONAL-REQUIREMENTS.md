@@ -106,8 +106,9 @@ gridify (`id, name, description, percentage, idCategory` + audit).
 `GET /odata/{entitySet}` com `$filter` (eq/ne/gt/ge/lt/le/contains/startswith/endswith, and/or),
 `$orderby`, `$top`(≤1000)/`$skip`, `$count=true`, `/$count`, `({key})`, `$select`.
 **Fora do subset**: `$expand`, funções de data, aritmética, literais `null`/boolean (ADR-013 —
-o frontend não consome essas opções). Implementação própria (sem lib — nenhuma candidata madura
-para FastAPI/SQLAlchemy async). Resposta `{ "@odata.context", "value": [...] }` (+`"@odata.count"`).
+o frontend não consome essas opções). `$filter` via biblioteca `odata-query` + whitelist de
+campos; demais opções via adapter próprio. Resposta `{ "@odata.context", "value": [...] }`
+(+`"@odata.count"`).
 
 ### FR-X-003 — Métricas
 `GET /metrics` Prometheus (http requests/latency/erros, pool DB, cache, publishes).

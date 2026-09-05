@@ -16,6 +16,7 @@ dependencies = [
     "pyjwt[crypto]>=2.12",
     "httpx>=0.28",
     "prometheus-client>=0.24",
+    "odata-query>=0.10,<1",
 ]
 
 [dependency-groups]

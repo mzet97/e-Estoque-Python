@@ -15,6 +15,7 @@ Redis client:      redis-py 8.1.0 (redis.asyncio)
 RabbitMQ client:   aio-pika 10.0.1
 JWT:               PyJWT 2.13.0 (+cryptography), JWKS local
 HTTP client:       httpx 0.28.1
+OData $filter:     odata-query 0.10.0 (parser OData v4; whitelist+coerção em filtering/odata_filter.py)
 Prometheus:        prometheus-client 0.26.0
 OpenTelemetry:     opcional (extra [otel], OTLP gRPC), desligado por padrão
 uv:                0.11.26 · uvicorn 0.52.4 · pytest 9.1.1
@@ -115,15 +116,15 @@ Logs:          JSON estruturado (timestamp, level, logger, event, request_id; sa
 ## Tests
 
 ```
-Unit:         46 — invariantes com mensagens exatas FluentValidation, VOs, enums+fallback, wire format,
-              parsers Gridify/OData, paginação, handlers com fakes (404/400 por recurso, soft/hard delete),
-              arquitetura (import rules)
+Unit:         55 — invariantes com mensagens exatas FluentValidation, VOs, enums+fallback, wire format,
+              parser Gridify + adapter OData ($filter via odata-query, 13 testes em sqlite), paginação,
+              handlers com fakes (404/400 por recurso, soft/hard delete), arquitetura (import rules)
 API:          32 — CRUD parity por recurso, envelopes/status, gridify, OData subset, auth proxy, 401/403, health/metrics
 Integration:  2 (Testcontainers PG 17 schema-parity + RabbitMQ publish) — auto-skip sem Docker
 Security:     inclusos nos de API (401/403/roles)
 Concurrency:  n/a por paridade (a API original não baixa estoque — ADR-014)
 Architecture: 4 testes (AST) — domínio puro, application sem infra/api, contextos isolados (composição só na api)
-Coverage:     80% linhas · 71% branches (meta ≥80/70 atingida); CI falha abaixo de 80
+Coverage:     80% linhas · 71%+ branches (meta ≥80/70); CI falha abaixo de 80
 ```
 
 ## Static Analysis
