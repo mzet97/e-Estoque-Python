@@ -12,34 +12,37 @@ HTTP (FastAPI)
       → MessageBus port → aio-pika adapter → RabbitMQ (publisher)
 ```
 
-## Árvore de pacotes
+## Árvore de pacotes (real — `src/e_estoque/`)
 
 ```text
 src/e_estoque/
-├── main.py                     # composition root (create_app)
+├── main.py                     # composition root (create_app, lifespan, CORS)
 ├── bootstrap/
 │   ├── settings.py             # pydantic-settings (db/redis/rabbit/keycloak/obs/cors)
-│   ├── logging.py              # JSON structured logging
-│   ├── observability.py        # OTel + Prometheus /metrics
-│   └── lifespan.py             # engine, redis, rabbit, jwks
+│   ├── logging.py              # JSON structured logging + request_id (contextvars)
+│   └── observability.py        # /metrics (instrumentator) + OTel opcional + bus counter
 ├── shared/
-│   ├── domain/                 # Entity base, DomainEvent, errors, Result/PagedResult, uow port
-│   ├── application/            # message bus port, clock
-│   ├── infrastructure/         # db (engine/session), rabbit publisher, redis, repositories base
-│   └── api/                    # envelope, error handlers, security (JWT/roles), pagination, health, metrics
-├── domains/
-│   ├── categories/  {domain, application, infrastructure, api}
-│   ├── companies/   {…}
-│   ├── customers/   {…}
-│   ├── inventories/ {…}
-│   ├── products/    {…}
-│   ├── sales/       {…}
-│   ├── taxes/       {…}
-│   └── identity/    {application (keycloak client), api (auth router)}
-├── filtering/                  # gridify parser + odata adapter → SQLAlchemy (safe, allow-list)
+│   ├── domain/                 # Entity, DomainEvent, checks (mensagens .NET), errors, SearchResult
+│   ├── application/            # MessageBus/UnitOfWork ports, filtering AST, read_models, handlers_support
+│   ├── infrastructure/         # db (engine/UnitOfWork), paging, sql_filtering, messaging (rabbit/wire/bus), cache
+│   └── api/                    # envelope/PagedResult, views, error handlers, security (JWT/roles), health
+├── filtering/                  # odata.py (rotas subset v4) · odata_filter.py ($filter via odata-query) · sets.py
+├── product/                    # Category + Product — cada contexto com:
+│   ├── domain/                 #   entidade, eventos, critérios, ports (Protocol)
+│   ├── application/            #   handlers CQRS (create/update/delete/get/search/gridify)
+│   ├── infrastructure/         #   models SQLAlchemy + repository (joins = includes .NET)
+│   └── api/                    #   router fino + request models
+├── company/    {domain, application, infrastructure, api}
+├── customer/   {…, delete soft}
+├── inventory/  {…, DateOrder varchar(80)}
+├── sale/       {…, Sale + SaleProduct, delete soft}
+├── tax/        {…}
+└── identity/
+    ├── application/            # KeycloakClient (login/refresh/register/system via httpx)
+    └── api/                    # auth_router (/api/Auth, anônimo)
 ```
 
-## Regras estruturais (verificadas por import-linter)
+## Regras estruturais (verificadas por testes de arquitetura — AST, `tests/unit/test_architecture.py`)
 
 1. `domain` não importa `application|infrastructure|api|fastapi|pydantic|sqlalchemy|redis|aio_pika`.
 2. `application` não importa `infrastructure`/`api` (usa ports).

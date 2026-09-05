@@ -1,24 +1,23 @@
 # 12 — TRACEABILITY
 
-Legenda: `tests/unit/...`, `tests/api/...`, `tests/integration/...`. Todo FR tem ≥1 teste.
+Arquivos de teste reais deste repositório. Todo FR tem ≥1 teste; a superfície HTTP inteira
+(75 rotas) está travada por `tests/api/test_endpoint_matrix.py::test_route_inventory_75_routes_locked`.
 
-| Requirement | Domain | Handler | API | Persistence | Unit Test | Integration/API Test |
+| Requirement | Domain | Handlers | API Router | Persistence | Unit Test | API/Integration Test |
 | --- | --- | --- | --- | --- | --- | --- |
-| FR-AUTH-001 | — | identity/application/login.py | api/Auth/login | Keycloak HTTP | test_login_handler | api/test_auth_routes.py |
-| FR-AUTH-002 | — | identity/application/refresh.py | api/Auth/refresh_token | Keycloak HTTP | test_refresh_handler | idem |
-| FR-AUTH-003 | — | identity/application/system_login.py | (interno) | Keycloak HTTP | test_system_login | idem |
-| FR-AUTH-004 | — | identity/application/register.py | api/Auth/register | Keycloak Admin | test_register_handler | idem |
-| FR-CAT-001..006 | categories/domain/category.py | categories/application/* | api/categories | categories/infrastructure | test_category_domain.py, test_category_handlers.py | api/test_categories_api.py |
-| FR-COMP-001..006 | companies/domain/company.py | companies/application/* | api/companies | companies/infrastructure | test_company_domain.py … | api/test_companies_api.py |
-| FR-CUST-001..006 | customers/domain/customer.py | customers/application/* | api/customers | customers/infrastructure | test_customer_domain.py … | api/test_customers_api.py |
-| FR-INV-001..006 | inventories/domain/inventory.py | inventories/application/* | api/inventories | inventories/infrastructure | test_inventory_domain.py … | api/test_inventories_api.py |
-| FR-PROD-001..006 | products/domain/product.py | products/application/* | api/products | products/infrastructure | test_product_domain.py … | api/test_products_api.py |
-| FR-SALE-001..006 | sales/domain/{sale,sale_product}.py | sales/application/* | api/sales | sales/infrastructure | test_sale_domain.py … | api/test_sales_api.py |
-| FR-TAX-001..006 | taxes/domain/tax.py | taxes/application/* | api/taxs | taxes/infrastructure | test_tax_domain.py … | api/test_taxs_api.py |
-| FR-X-001 | — | — | /health,/health/live,/health/ready | — | — | api/test_health.py |
-| FR-X-002 | — | — | /odata/* | filtering/odata.py | unit/test_odata_parser.py | api/test_odata.py |
-| FR-X-003 | — | — | /metrics | bootstrap/observability.py | — | api/test_metrics.py |
-| NFR-ARCH-001/002 | — | — | — | — | unit/test_architecture.py (import-linter) | CI |
-| NFR-SEC-* | — | — | shared/api/security.py | — | unit/test_jwt_validator.py | api/test_security.py |
-| NFR-DATA-001 | — | — | — | alembic/0001 | — | integration/test_schema_parity.py |
-| NFR-REL-001 | — | — | — | shared/infrastructure/rabbitmq.py | unit/test_rabbit_publisher.py | integration/test_rabbit_publish.py |
+| FR-AUTH-001..004 | — | identity/application/keycloak_client.py | identity/api/auth_router.py | Keycloak HTTP/Admin | — | api/test_odata_auth.py (login ok/403), api/test_endpoint_matrix.py (register ok/403, refresh ok/403) |
+| FR-CAT-001..006 | product/domain/category.py | product/application/category_handlers.py | product/api/category_router.py | product/infrastructure/category_repository.py | unit/test_category_domain.py, unit/test_handlers.py | api/test_crud_parity.py, api/test_endpoint_matrix.py (get/put), api/test_odata_auth.py (odata) |
+| FR-COMP-001..006 | company/domain/company.py | company/application/company_handlers.py | company/api/company_router.py | company/infrastructure/company_repository.py | unit/test_party_domains.py, unit/test_handlers.py | api/test_crud_parity.py (roundtrip), api/test_endpoint_matrix.py (search/gridify/404) |
+| FR-CUST-001..006 | customer/domain/customer.py | customer/application/customer_handlers.py | customer/api/customer_router.py | customer/infrastructure/customer_repository.py | unit/test_party_domains.py, unit/test_handlers.py (soft delete) | api/test_crud_parity.py (sale flow), api/test_endpoint_matrix.py (roundtrip soft delete) |
+| FR-INV-001..006 | inventory/domain/inventory.py | inventory/application/inventory_handlers.py | inventory/api/inventory_router.py | inventory/infrastructure/inventory_repository.py | unit/test_catalog_domains.py, unit/test_handlers.py | api/test_crud_parity.py, api/test_endpoint_matrix.py (get/put/delete/gridify) |
+| FR-PROD-001..006 | product/domain/product.py | product/application/product_handlers.py | product/api/product_router.py | product/infrastructure/product_repository.py | unit/test_catalog_domains.py, unit/test_handlers.py | api/test_crud_parity.py, api/test_endpoint_matrix.py (get/put/delete/gridify) |
+| FR-SALE-001..006 | sale/domain/sale.py | sale/application/sale_handlers.py | sale/api/sale_router.py | sale/infrastructure/sale_repository.py | unit/test_catalog_domains.py, unit/test_handlers.py (soft delete) | api/test_crud_parity.py (flow), api/test_endpoint_matrix.py (list/put/gridify) |
+| FR-TAX-001..006 | tax/domain/tax.py | tax/application/tax_handlers.py | tax/api/tax_router.py | tax/infrastructure/tax_repository.py | unit/test_catalog_domains.py, unit/test_handlers.py | api/test_crud_parity.py (400 categoria), api/test_endpoint_matrix.py (get/put/delete/search/gridify) |
+| FR-X-001 | — | — | shared/api/health.py | db | — | api/test_security_health.py (200/503) |
+| FR-X-002 | — | — | filtering/odata.py, filtering/sets.py | filtering/odata_filter.py | unit/test_odata_filter_adapter.py, unit/test_wire_filtering_pagination.py (parsers) | api/test_odata_auth.py (sets/filter/count/key/metadata) |
+| FR-X-003 | — | — | bootstrap/observability.py | — | — | api/test_security_health.py (métricas expostas) |
+| FR-X-004 | — | — | main.py (docs_url) | — | — | api/test_security_health.py (openapi) |
+| NFR-ARCH-001/002 | — | — | — | — | unit/test_architecture.py | CI (falha pipeline) |
+| NFR-SEC-001..004 | — | — | shared/api/security.py | — | unit/test_architecture.py (sem eval) | api/test_security_health.py (401/403) |
+| NFR-DATA-001 | — | — | — | alembic/versions/0001_initial.py | — | integration/test_containers_parity.py (PG real, CI) |
+| NFR-REL-001 | — | — | — | shared/infrastructure/messaging/bus.py | unit (FakeBus best-effort) | — |

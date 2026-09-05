@@ -87,8 +87,12 @@ curl http://localhost:8000/health/live
 ## Qualidade (gate único)
 
 ```bash
-./scripts/verify.sh     # ruff + format + mypy strict + alembic offline + pytest --cov
+./scripts/verify.sh     # sync frozen + ruff + format + mypy strict + alembic offline + pytest --cov
 ```
+
+Estado atual: **VERIFY PASS** · 141 testes (2 integrações auto-skip sem Docker) · cobertura
+**92% linhas / ~77% branches** · mypy `strict` limpo · `pip-audit` sem vulnerabilidades conhecidas
+(também roda como gate no CI).
 
 ## Testes
 
@@ -97,6 +101,9 @@ uv run pytest tests/unit        # domínio, handlers (fakes), parsers, arquitetu
 uv run pytest tests/api         # contratos HTTP (ASGI + SQLite in-memory p/ comportamento)
 EESTOQUE_SKIP_DOCKER=0 uv run pytest tests/integration   # Testcontainers (PG/RabbitMQ reais)
 ```
+
+Destaque: `tests/api/test_endpoint_matrix.py` trava as **75 rotas** registradas (route inventory)
+e exercita CRUD completo nos 7 contextos, os 8 sets OData e os fluxos de auth.
 
 ## API (contrato do .NET preservado)
 

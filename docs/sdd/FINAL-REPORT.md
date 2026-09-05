@@ -51,15 +51,21 @@ Identity:   ✅ Keycloak client + JWT/JWKS + roles realm_access
 ## API Parity
 
 ```
-Original endpoints:       45 (REST 8 controllers + OData 7 sets + ops)
-Python endpoints:         47 (todos os 45 + /health/live + /health/ready)
-Compatible:               100% dos 45 (matriz: docs/sdd/13-API-PARITY.md)
-Intentional differences:  OData em subset seguro ($filter eq/ne/gt/…/contains/$orderby/$top/$skip/$count/$select/1 key) — ADR-013;
-                          Swagger UI → /docs do FastAPI
+Original endpoints:       45 (REST 8 controllers ×6 rotas + 3 auth + OData 7 sets + ops)
+Python endpoints:         47 → 75 rotas método+path (47 + $count/por set + catchall Set(key))
+Compatible:               100% dos endpoints (matriz: docs/sdd/13-API-PARITY.md)
+Intentional differences:  OData em subset seguro ($filter eq/ne/gt/…/contains/$orderby/$top/$skip/$count/$select —
+                          sem $expand) — ADR-013; Swagger UI → /docs do FastAPI
 Missing:                  0 endpoints
+Surface lock:             tests/api/test_endpoint_matrix.py::test_route_inventory_75_routes_locked
 ```
 
-Validado por 32 testes de API: 201+Location só em Categories POST, DELETE→200 `{}`, envelope
+Superfície travada por teste de inventário de rotas (**75 rotas**): qualquer rota criada/removida
+sem atualizar o teste quebra o CI. Matriz de endpoints (`test_endpoint_matrix.py`, 41 testes)
+exercita TODAS as rotas: CRUD completo nos 7 contextos (search/gridify/get/put/delete), soft vs
+hard delete, OData nos 8 entity sets (`$filter/$orderby/$top/$count/$select`, `Set(key)`,
+`/$count`, `/$metadata`), auth completo (login/register/refresh, sucesso e falha),
+`/health/ready` 503, 201+Location só em Categories POST, DELETE→200 `{}`, envelope
 `{success,message,data,pagedResult}` camelCase, 400 com mensagens FluentValidation unidas por
 vírgula, 403 sem role Create, 404 com mensagens do .NET, `dateOrder` string ISO, decimal como número.
 
@@ -116,7 +122,7 @@ Logs:          JSON estruturado (timestamp, level, logger, event, request_id; sa
 ## Tests
 
 ```
-Unit:         55 — invariantes com mensagens exatas FluentValidation, VOs, enums+fallback, wire format,
+Unit:         68 — invariantes com mensagens exatas FluentValidation, VOs, enums+fallback, wire format,
               parser Gridify + adapter OData ($filter via odata-query, 13 testes em sqlite), paginação,
               handlers com fakes (404/400 por recurso, soft/hard delete), arquitetura (import rules)
 API:          73 — CRUD parity COMPLETO (search/gridify/get/put/delete nos 7 contextos), matriz de 75
@@ -126,21 +132,26 @@ Integration:  2 (Testcontainers PG 17 schema-parity + RabbitMQ publish) — auto
 Security:     inclusos nos de API (401/403/roles)
 Concurrency:  n/a por paridade (a API original não baixa estoque — ADR-014)
 Architecture: 4 testes (AST) — domínio puro, application sem infra/api, contextos isolados (composição só na api)
+Total:        141 passed · 2 skipped (integração Docker) = 143 coletados
 Coverage:     92% linhas · ~77% branches (meta ≥80/70 superada); CI falha abaixo de 80
 ```
 
 ## Static Analysis
 
 ```
-Ruff:  All checks passed (lint + format, 80 arquivos)
-mypy:  Success — no issues found in 68 source files (strict = true)
+Ruff:  All checks passed (lint + format, ~82 arquivos)
+mypy:  Success — no issues found in 69 source files (strict = true)
+pip-audit: No known vulnerabilities (rodado localmente e como gate no CI)
 ```
 
 ## Verification
 
 ```
 Command: ./scripts/verify.sh
-Etapas:  uv sync --frozen · ruff check · ruff format --check · mypy strict · alembic upgrade head --sql (+greps de paridade) · pytest --cov --cov-branch
+Etapas:  uv sync --frozen · ruff check · ruff format --check · mypy strict ·
+         alembic upgrade head --sql (+greps de paridade) · pytest --cov --cov-branch
+CI:     quality job adiciona `pip-audit` (vulnerabilidades de dependências); integration job
+         aplica a migration em PostgreSQL 17 real e faz docker build
 Result:  PASS (exit 0)
 ```
 
@@ -156,9 +167,15 @@ Result:   PASS na construção/definição — EXECUÇÃO NÃO REALIZADA NESTE A
 ## Commits
 
 ```
+2660688  feat(all): FastAPI app composition, auth/OData routes, Alembic 0001 parity schema, tests, Docker compose, CI, verify gate
 4a524e8  docs(sdd): discovery + specification baseline
 62a7004  feat(domains): all 7 bounded contexts with CQRS handlers, repositories and routers
-2660688  feat(all): FastAPI app composition, auth/OData routes, Alembic 0001 parity schema, tests (82), Docker compose, CI, verify gate
+4b52053  docs(adr-013): OData subset real documentado
+009b243  docs(sdd): FR-X-002 alinhado ao subset OData real
+8bae728  chore: remove evaluation spike (evidência na ADR-013)
+bc764d6  feat(observability): pip-audit gate in CI + prometheus-fastapi-instrumentator for /metrics
+32a09e8  test(api): full endpoint coverage matrix — all 75 routes exercised (+ fix count_rows FROM)
+777b58b  chore: untrack coverage artifact (.coverage)
 (bloco anterior, da sessão predecessora: bootstrap do projeto, shared kernel, product/category parciais)
 ```
 
