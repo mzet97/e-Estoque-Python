@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20260905T005648247Z-54724-c92524b65f1a",
+  "runStatus": "inconclusive",
+  "errors": [
+    "candidate-select:src/e_estoque/shared/api/filtering.py: changed_file_unreadable: observed changed file no longer exists or cannot be read",
+    "baseline:.: baseline_partial: baseline capture had enumeration or snapshot errors",
+    "scan:src/e_estoque/shared/domain/errors.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/domain/entity.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/domain/checks.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/api/schemas.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/bootstrap/settings.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/infrastructure/db.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/infrastructure/messaging/wire.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/infrastructure/outbox.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/infrastructure/messaging/rabbit.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/infrastructure/cache.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/infrastructure/sql_filtering.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/api/error_handlers.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/identity/infrastructure/security.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/product/domain/category.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/application/filtering.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/product/infrastructure/models.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/shared/domain/search.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT",
+    "scan:src/e_estoque/product/domain/product.py: scanner_failed: spawnSync C:\\nvm4w\\nodejs\\node.exe ETIMEDOUT"
+  ],
+  "target": ".",
+  "revision": "b29178ffe883a0f0b63c2712d801d882522ac90e",
+  "diffHash": "ded7d43ef6509687d618a2b4b2f7bba3806cd1e9765ddaf5deb926c29403f4b4",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-09-05T00:56:48.247Z",
+  "timing": {
+    "startedAt": "2026-09-05T00:56:45.573Z",
+    "completedAt": "2026-09-05T00:56:48.247Z",
+    "durationMs": 2674
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 18,
+    "bySeverity": {
+      "high": 18
+    },
+    "byStatus": {
+      "blocked": 18
+    }
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "changed_file_unreadable": 1,
+      "baseline_partial": 1,
+      "scanner_failed": 18,
+      "project_check_failed": 20
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-sess_293fcb32-be82-4bda-8ecf-8a8b485cb86e-20260905T005648247Z-54724-c92524b65f1a.json"
+}
