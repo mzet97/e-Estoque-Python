@@ -13,8 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def count_rows(session: AsyncSession, stmt: Select[Any]) -> int:
-    """Total de linhas do statement (após filtros), sem ordenação."""
-    count_stmt = stmt.with_only_columns(func.count()).order_by(None)
+    """Total de linhas do statement (após filtros), sem ordenação.
+
+    `maintain_column_froms=True` preserva o FROM mesmo sem WHERE — sem ela,
+    `SELECT count(*)` perde a tabela e retorna 1 em banco vazio.
+    """
+    count_stmt = stmt.with_only_columns(func.count(), maintain_column_froms=True).order_by(None)
     result = await session.scalar(count_stmt)
     return int(result or 0)
 

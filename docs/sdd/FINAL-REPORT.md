@@ -119,12 +119,14 @@ Logs:          JSON estruturado (timestamp, level, logger, event, request_id; sa
 Unit:         55 — invariantes com mensagens exatas FluentValidation, VOs, enums+fallback, wire format,
               parser Gridify + adapter OData ($filter via odata-query, 13 testes em sqlite), paginação,
               handlers com fakes (404/400 por recurso, soft/hard delete), arquitetura (import rules)
-API:          32 — CRUD parity por recurso, envelopes/status, gridify, OData subset, auth proxy, 401/403, health/metrics
+API:          73 — CRUD parity COMPLETO (search/gridify/get/put/delete nos 7 contextos), matriz de 75
+              rotas travada por teste (route inventory), OData nos 8 entity sets, auth completo
+              (login/register/refresh, sucesso e falha), 401/403, health (200/503), metrics
 Integration:  2 (Testcontainers PG 17 schema-parity + RabbitMQ publish) — auto-skip sem Docker
 Security:     inclusos nos de API (401/403/roles)
 Concurrency:  n/a por paridade (a API original não baixa estoque — ADR-014)
 Architecture: 4 testes (AST) — domínio puro, application sem infra/api, contextos isolados (composição só na api)
-Coverage:     80% linhas · 71%+ branches (meta ≥80/70); CI falha abaixo de 80
+Coverage:     92% linhas · ~77% branches (meta ≥80/70 superada); CI falha abaixo de 80
 ```
 
 ## Static Analysis
