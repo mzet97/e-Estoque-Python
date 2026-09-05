@@ -7,11 +7,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from e_estoque.bootstrap.observability import (
-    PrometheusMiddleware,
-    init_tracing,
-    metrics_endpoint,
-)
+from e_estoque.bootstrap.observability import init_metrics, init_tracing
 from e_estoque.bootstrap.settings import Settings
 from e_estoque.company.api.company_router import router as company_router
 from e_estoque.customer.api.customer_router import router as customer_router
@@ -113,7 +109,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # ---- cross-cutting ----
     install_exception_handlers(app)
-    app.add_middleware(PrometheusMiddleware)
+    init_metrics(app)
 
     # ---- routers ----
     app.include_router(auth_router)
@@ -126,7 +122,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(tax_router)
     app.include_router(health_router)
     app.include_router(build_odata_router(odata_sets()))
-    app.add_api_route("/metrics", metrics_endpoint, methods=["GET"], include_in_schema=False)
 
     # ---- CORS (paridade CorsConfig.cs: Development allow-all / Production GET) ----
     from fastapi.middleware.cors import CORSMiddleware

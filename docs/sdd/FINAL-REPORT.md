@@ -107,7 +107,7 @@ Invalidation:     ReferenceCache disponível (TTL 15min) para uso futuro comprov
 
 ```
 OpenTelemetry: opcional (extra [otel]) → OTLP gRPC (Tempo), FastAPI/HTTPX/SQLAlchemy instrumentados
-Prometheus:    /metrics (requests, latência histograma, erros 5xx, pool, cache, publishes; sem labels de cardinalidade)
+Prometheus:    /metrics via prometheus-fastapi-instrumentator 8.1 (requests, latência histograma, status; namespace e_estoque) + publishes do broker (`e_estoque_bus_published_total`); sem labels de cardinalidade
 Grafana/Loki:  serviços no compose (dashboards provisionáveis)
 Health:        /health ("Healthy", paridade) · /health/live · /health/ready (SELECT 1 no PostgreSQL)
 Logs:          JSON estruturado (timestamp, level, logger, event, request_id; sanitizer de dados sensíveis)

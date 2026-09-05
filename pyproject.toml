@@ -17,6 +17,7 @@ dependencies = [
     "httpx>=0.28",
     "prometheus-client>=0.24",
     "odata-query>=0.10,<1",
+    "prometheus-fastapi-instrumentator>=8.1.0",
 ]
 
 [dependency-groups]
@@ -29,6 +30,7 @@ dev = [
     "testcontainers[postgres]>=4.13",
     "greenlet>=3.2",
     "aiosqlite>=0.22.1",
+    "pip-audit>=2.10.1",
 ]
 
 [build-system]

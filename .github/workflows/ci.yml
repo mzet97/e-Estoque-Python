@@ -19,6 +19,9 @@ jobs:
       - name: Sync dependencies (frozen)
         run: uv sync --frozen
 
+      - name: Dependency vulnerability scan (pip-audit)
+        run: uv run pip-audit
+
       - name: Ruff lint
         run: uv run ruff check src tests scripts
 

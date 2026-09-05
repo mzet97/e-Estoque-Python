@@ -1,76 +1,35 @@
 """Observabilidade: métricas Prometheus em /metrics + OTel opcional (ADR-012).
 
-Labels sem alta cardinalidade (método, rota, status) — nunca ids de usuário/entidade.
+HTTP via `prometheus-fastapi-instrumentator` (requests, latência, status — labels
+por template de rota, sem alta cardinalidade; namespace `e_estoque`). Contador de
+publicações no broker fica no registro default, junto das métricas HTTP.
+Tracing OpenTelemetry é opcional (extra `otel`), exportando via OTLP gRPC.
 """
 
 from __future__ import annotations
 
-import time
+from prometheus_client import Counter
+from starlette.applications import Starlette
 
-from prometheus_client import (
-    CONTENT_TYPE_LATEST,
-    CollectorRegistry,
-    Counter,
-    Gauge,
-    Histogram,
-    generate_latest,
-)
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
-
-registry = CollectorRegistry(auto_describe=True)
-
-HTTP_REQUESTS = Counter(
-    "e_estoque_http_requests_total",
-    "HTTP requests",
-    ("method", "endpoint", "status"),
-    registry=registry,
-)
-HTTP_LATENCY = Histogram(
-    "e_estoque_http_request_duration_seconds",
-    "HTTP request latency",
-    ("method", "endpoint"),
-    registry=registry,
-)
-HTTP_ERRORS = Counter(
-    "e_estoque_http_errors_total",
-    "HTTP 5xx errors",
-    ("method", "endpoint"),
-    registry=registry,
-)
-DB_POOL_IN_USE = Gauge("e_estoque_db_pool_in_use", "DB connections in use", registry=registry)
-CACHE_HITS = Counter("e_estoque_cache_hits_total", "Cache hits", registry=registry)
-CACHE_MISSES = Counter("e_estoque_cache_misses_total", "Cache misses", registry=registry)
 BUS_PUBLISHED = Counter(
-    "e_estoque_bus_published_total", "Events published", ("exchange", "outcome"), registry=registry
+    "e_estoque_bus_published_total",
+    "Domain events published to the message bus",
+    ("exchange", "outcome"),
 )
 
 
-class PrometheusMiddleware(BaseHTTPMiddleware):
-    """Mede latência/erros por rota (template, sem ids)."""
-
-    async def dispatch(self, request: Request, call_next):  # type: ignore[no-untyped-def]
-        route = request.scope.get("route")
-        endpoint = getattr(route, "path", None) or request.url.path
-        started = time.perf_counter()
-        try:
-            response = await call_next(request)
-        except Exception:
-            HTTP_ERRORS.labels(method=request.method, endpoint=endpoint).inc()
-            HTTP_REQUESTS.labels(method=request.method, endpoint=endpoint, status=500).inc()
-            raise
-        elapsed = time.perf_counter() - started
-        HTTP_LATENCY.labels(method=request.method, endpoint=endpoint).observe(elapsed)
-        HTTP_REQUESTS.labels(
-            method=request.method, endpoint=endpoint, status=response.status_code
-        ).inc()
-        return response
+def note_bus_publish(exchange: str, outcome: str) -> None:
+    """Registra resultado de um publish (ok/fail) — chamado pelo DirectMessageBus."""
+    BUS_PUBLISHED.labels(exchange=exchange, outcome=outcome).inc()
 
 
-async def metrics_endpoint() -> Response:
-    """GET /metrics (padrão Prometheus do .NET)."""
-    return Response(content=generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
+def init_metrics(app: Starlette) -> None:
+    """Instrumenta o app e expõe `/metrics` (padrão Prometheus do .NET)."""
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    Instrumentator(should_group_status_codes=True).instrument(
+        app, metric_namespace="e_estoque"
+    ).expose(app, endpoint="/metrics", include_in_schema=False)
 
 
 def init_tracing(app: object, otlp_endpoint: str | None, engine: object | None = None) -> None:

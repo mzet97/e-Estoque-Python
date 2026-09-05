@@ -57,8 +57,8 @@ classDiagram
 
 Python 3.14 · FastAPI · Pydantic v2 (+ Settings) · SQLAlchemy 2 async · asyncpg · Alembic ·
 PostgreSQL 17 · aio-pika · redis-py · Keycloak (JWT via JWKS, PyJWT) · odata-query (OData `$filter`)
-· OpenTelemetry (opcional, extra `[otel]`) · Prometheus · pytest(+asyncio, cov) · Testcontainers ·
-Ruff · mypy `strict` · uv.
+· prometheus-fastapi-instrumentator (métricas) · OpenTelemetry (opcional, extra `[otel]`) ·
+pytest(+asyncio, cov) · Testcontainers · Ruff · mypy `strict` · uv.
 
 ## Requisitos
 

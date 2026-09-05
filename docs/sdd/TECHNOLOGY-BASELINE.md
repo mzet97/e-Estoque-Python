@@ -17,6 +17,7 @@ Baseline tecnológica verificada em 2026-09-04. Versões **resolvidas e travadas
 | odata-query | 0.10+ | **0.10.0** (parser `$filter` OData v4 — ADR-013) |
 | httpx | 0.28+ | **0.28.1** |
 | prometheus-client | 0.24+ | **0.26.0** |
+| prometheus-fastapi-instrumentator | 8.x | **8.1.0** (métricas HTTP /metrics) |
 | uvicorn | 0.40+ | **0.52.4** |
 | pytest | 9.x | **9.1.1** |
 | mypy / ruff | strict/latest | travados no lock |

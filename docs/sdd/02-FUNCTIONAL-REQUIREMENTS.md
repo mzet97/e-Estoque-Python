@@ -111,7 +111,9 @@ campos; demais opções via adapter próprio. Resposta `{ "@odata.context", "val
 (+`"@odata.count"`).
 
 ### FR-X-003 — Métricas
-`GET /metrics` Prometheus (http requests/latency/erros, pool DB, cache, publishes).
+`GET /metrics` Prometheus: http requests/latência/erros (via `prometheus-fastapi-instrumentator`)
++ publishes do broker (`e_estoque_bus_published_total{exchange,outcome}`). Labels por template de
+rota — sem alta cardinalidade.
 
 ### FR-X-004 — OpenAPI
 `/docs`, `/redoc`, `/openapi.json` (JWT bearer security scheme).
