@@ -24,7 +24,7 @@ Auth: `Authorization: Bearer <JWT>`; leitura = autenticado; escrita = role `Crea
 | API-PROD-001..006 | idem em /api/Products | `{name, description, shortDescription, price, weight, height, length, image, idCategory, idCompany}` | | |
 | API-SALE-001..006 | idem em /api/Sales | `{quantity, totalPrice, totalTax, saleType, paymentType, deliveryDate, saleDate, paymentDate, idCustomer, idsProducts[]}` | | DELETE = **soft**; search: `saleType`/`paymentType` strings ("pix"…) |
 | API-TAX-001..006 | idem em /api/Taxs | `{name, description, percentage, idCategory}` | | categoria inexistente → **400** |
-| API-ODATA | GET | /odata/{Products,Categories,Companies,Customers,Inventories,Sales,Taxs,SaleProducts} | JWT | `$filter,$orderby,$top,$skip,$count,$select,$expand` | `{@odata.context, value[], @odata.count?}` | 200/404 |
+| API-ODATA | GET | /odata/{Products,Categories,Companies,Customers,Inventories,Sales,Taxs,SaleProducts} | JWT | `$filter,$orderby,$top,$skip,$count,$select` (subset — `$expand` não suportado, ADR-013) | `{@odata.context, value[], @odata.count?}` | 200/404 |
 | API-ODATA-COUNT | GET | /odata/{set}/$count · /odata/{set}({key}) · /odata/$metadata | JWT | | count·item·CSDL | 200/404 |
 | API-H-001 | GET | /health | anon | | `Healthy` | 200 |
 | API-H-002/003 | GET | /health/live · /health/ready | anon | | live: `{"status":"alive"}`; ready: deps | 200/503 |
