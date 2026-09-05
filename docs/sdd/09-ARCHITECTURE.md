@@ -37,7 +37,6 @@ src/e_estoque/
 │   ├── taxes/       {…}
 │   └── identity/    {application (keycloak client), api (auth router)}
 ├── filtering/                  # gridify parser + odata adapter → SQLAlchemy (safe, allow-list)
-└── workers/                    # (reservado; sistema original não tem consumers)
 ```
 
 ## Regras estruturais (verificadas por import-linter)
