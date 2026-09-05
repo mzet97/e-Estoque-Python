@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from e_estoque.shared.application.handlers_support import (
@@ -19,9 +18,9 @@ from e_estoque.shared.application.handlers_support import (
 )
 from e_estoque.shared.application.message_bus import NOTIFICATION_EXCHANGE, MessageBus
 from e_estoque.shared.application.read_models import Detailed
+from e_estoque.shared.application.unit_of_work import UnitOfWork
 from e_estoque.shared.domain.errors import ValidationError
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.db import UnitOfWork
 from e_estoque.tax.domain.tax import CategoryReader, Tax, TaxCriteria, TaxRepository
 
 EXCHANGE = "tax-service"
@@ -53,20 +52,20 @@ class DeleteTaxCommand:
 class SearchTaxQuery:
     name: str = ""
     description: str = ""
-    percentage: Optional[Decimal] = None
-    id_category: Optional[UUID] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-    order: Optional[str] = None
+    percentage: Decimal | None = None
+    id_category: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    deleted_at: datetime | None = None
+    order: str | None = None
     page_index: int = 1
     page_size: int = 10
 
 
 @dataclass(frozen=True, slots=True)
 class GridifyTaxQuery:
-    filter: Optional[str] = None
-    order_by: Optional[str] = None
+    filter: str | None = None
+    order_by: str | None = None
     page: int = 1
     page_size: int = 10
 
@@ -85,9 +84,7 @@ class CreateTaxHandler:
         self._category_reader = category_reader
 
     async def handle(self, command: CreateTaxCommand) -> UUID:
-        tax = Tax.create(
-            command.name, command.description, command.percentage, command.id_category
-        )
+        tax = Tax.create(command.name, command.description, command.percentage, command.id_category)
         await ensure_valid(tax, self._bus, "Validate Tax has error", NOTIFICATION_EXCHANGE)
         # Paridade .NET: categoria inexistente em Tax lança ValidationException (400).
         if not await self._category_reader.exists(command.id_category):
@@ -156,9 +153,7 @@ class GetByIdTaxHandler:
 
     async def handle(self, tax_id: UUID) -> Detailed[Tax]:
         detailed = await self._repository.find_detailed_by_id(tax_id)
-        await ensure_found(
-            detailed, self._bus, "Not found Tax", "Not found", NOTIFICATION_EXCHANGE
-        )
+        await ensure_found(detailed, self._bus, "Not found Tax", "Not found", NOTIFICATION_EXCHANGE)
         assert detailed is not None  # garantido por ensure_found
         return detailed
 
@@ -169,11 +164,16 @@ class SearchTaxHandler:
 
     async def handle(self, query: SearchTaxQuery) -> SearchResult[Detailed[Tax]]:
         criteria = TaxCriteria(
-            name=query.name, description=query.description,
-            percentage=query.percentage, id_category=query.id_category,
-            created_at=query.created_at, updated_at=query.updated_at,
+            name=query.name,
+            description=query.description,
+            percentage=query.percentage,
+            id_category=query.id_category,
+            created_at=query.created_at,
+            updated_at=query.updated_at,
             deleted_at=query.deleted_at,
-            order=query.order, page=query.page_index, size=query.page_size,
+            order=query.order,
+            page=query.page_index,
+            size=query.page_size,
         )
         return await self._repository.search(criteria)
 

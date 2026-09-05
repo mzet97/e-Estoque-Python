@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from uuid import UUID
-
 from typing import Protocol
+from uuid import UUID
 
 from e_estoque.shared.domain.checks import audit, length, provided
 from e_estoque.shared.domain.entity import DomainEvent, Entity, new_id, utcnow
@@ -55,11 +54,9 @@ class Category(Entity):
         self.short_description = short_description
 
     @classmethod
-    def create(cls, name: str, description: str, short_description: str) -> "Category":
+    def create(cls, name: str, description: str, short_description: str) -> Category:
         category = cls(new_id(), name, description, short_description, utcnow())
-        category.register_event(
-            CategoryCreated(category.id, name, description, short_description)
-        )
+        category.register_event(CategoryCreated(category.id, name, description, short_description))
         category.validate()
         return category
 
@@ -74,7 +71,7 @@ class Category(Entity):
         updated_at: datetime | None,
         deleted_at: datetime | None,
         is_deleted: bool,
-    ) -> "Category":
+    ) -> Category:
         category = cls(
             id, name, description, short_description, created_at, updated_at, deleted_at, is_deleted
         )

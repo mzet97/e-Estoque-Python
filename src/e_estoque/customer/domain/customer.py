@@ -23,7 +23,7 @@ class CustomerCreated(DomainEvent):
     email: str
     description: str
     phone_number: str
-    customer_address: "CustomerAddress"
+    customer_address: CustomerAddress
     occurred_on: datetime = field(default_factory=utcnow)
 
 
@@ -35,7 +35,7 @@ class CustomerUpdated(DomainEvent):
     email: str
     description: str
     phone_number: str
-    customer_address: "CustomerAddress"
+    customer_address: CustomerAddress
     occurred_on: datetime = field(default_factory=utcnow)
 
 
@@ -59,7 +59,12 @@ class CustomerAddress:
 # ---- Entity ----
 class Customer(Entity):
     __slots__ = (
-        "name", "doc_id", "email", "description", "phone_number", "customer_address",
+        "name",
+        "doc_id",
+        "email",
+        "description",
+        "phone_number",
+        "customer_address",
     )
 
     def __init__(
@@ -93,10 +98,16 @@ class Customer(Entity):
         description: str,
         phone_number: str,
         customer_address: CustomerAddress,
-    ) -> "Customer":
+    ) -> Customer:
         customer = cls(
-            new_id(), name, doc_id, email, description, phone_number,
-            customer_address, utcnow(),
+            new_id(),
+            name,
+            doc_id,
+            email,
+            description,
+            phone_number,
+            customer_address,
+            utcnow(),
         )
         customer.register_event(
             CustomerCreated(
@@ -120,10 +131,19 @@ class Customer(Entity):
         updated_at: datetime | None,
         deleted_at: datetime | None,
         is_deleted: bool,
-    ) -> "Customer":
+    ) -> Customer:
         customer = cls(
-            id, name, doc_id, email, description, phone_number, customer_address,
-            created_at, updated_at, deleted_at, is_deleted,
+            id,
+            name,
+            doc_id,
+            email,
+            description,
+            phone_number,
+            customer_address,
+            created_at,
+            updated_at,
+            deleted_at,
+            is_deleted,
         )
         customer.validate()
         return customer

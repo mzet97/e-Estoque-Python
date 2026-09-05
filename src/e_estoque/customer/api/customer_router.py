@@ -31,13 +31,15 @@ from e_estoque.shared.api.schemas import (
     paged_search_bounds,
     paged_view,
 )
-from e_estoque.shared.api.security import CurrentUser, require_create
+from e_estoque.shared.api.security import CurrentUser, current_user, require_create
 from e_estoque.shared.api.views import CustomerView
 from e_estoque.shared.application.address_input import AddressInput
 from e_estoque.shared.application.message_bus import MessageBus
 from e_estoque.shared.infrastructure.db import UnitOfWork, open_uow
 
-router = APIRouter(prefix="/api/Customers", tags=["Customers"])
+router = APIRouter(
+    prefix="/api/Customers", tags=["Customers"], dependencies=[Depends(current_user)]
+)
 
 
 def _repository(uow: Annotated[UnitOfWork, Depends(open_uow)]) -> CustomerRepository:
@@ -141,10 +143,18 @@ async def search(
     page, size = paged_search_bounds(page_index, page_size)
     result = await handler.handle(
         SearchCustomerQuery(
-            name=name, doc_id=doc_id, email=email, description=description,
-            phone_number=phone_number, id=id, created_at=created_at,
-            updated_at=updated_at, deleted_at=deleted_at,
-            order=order, page_index=page, page_size=size,
+            name=name,
+            doc_id=doc_id,
+            email=email,
+            description=description,
+            phone_number=phone_number,
+            id=id,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            order=order,
+            page_index=page,
+            page_size=size,
         )
     )
     return BaseResultList[CustomerView](
@@ -188,7 +198,7 @@ async def create(
     get_handler: Annotated[GetByIdCustomerHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[CustomerView]:
-    customer_id = await create_handler.handle(_to_command(payload))
+    customer_id = await create_handler.handle(_to_create(payload))
     customer = await get_handler.handle(customer_id)
     return BaseResult[CustomerView](
         data=CustomerView.model_validate(customer, from_attributes=True)
@@ -203,7 +213,7 @@ async def update(
     get_handler: Annotated[GetByIdCustomerHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[CustomerView]:
-    await update_handler.handle(_to_command(payload, customer_id))
+    await update_handler.handle(_to_update(customer_id, payload))
     customer = await get_handler.handle(customer_id)
     return BaseResult[CustomerView](
         data=CustomerView.model_validate(customer, from_attributes=True)
@@ -220,18 +230,28 @@ async def delete(
     return {}
 
 
-def _to_command(
-    payload: CreateCustomerRequest, customer_id: UUID | None = None
-) -> CreateCustomerCommand | UpdateCustomerCommand:
-    address = AddressInput(**payload.customer_address.model_dump(by_alias=False))
-    if customer_id is None:
-        return CreateCustomerCommand(
-            name=payload.name, doc_id=payload.doc_id, email=payload.email,
-            description=payload.description, phone_number=payload.phone_number,
-            customer_address=address,
-        )
+def _address_of(payload: CreateCustomerRequest) -> AddressInput:
+    return AddressInput(**payload.customer_address.model_dump(by_alias=False))
+
+
+def _to_create(payload: CreateCustomerRequest) -> CreateCustomerCommand:
+    return CreateCustomerCommand(
+        name=payload.name,
+        doc_id=payload.doc_id,
+        email=payload.email,
+        description=payload.description,
+        phone_number=payload.phone_number,
+        customer_address=_address_of(payload),
+    )
+
+
+def _to_update(customer_id: UUID, payload: UpdateCustomerRequest) -> UpdateCustomerCommand:
     return UpdateCustomerCommand(
-        id=customer_id, name=payload.name, doc_id=payload.doc_id, email=payload.email,
-        description=payload.description, phone_number=payload.phone_number,
-        customer_address=address,
+        id=customer_id,
+        name=payload.name,
+        doc_id=payload.doc_id,
+        email=payload.email,
+        description=payload.description,
+        phone_number=payload.phone_number,
+        customer_address=_address_of(payload),
     )

@@ -23,7 +23,7 @@ class TaxModel(TaxBase):
     description: Mapped[str] = mapped_column("Description", String(250))
     percentage: Mapped[Decimal] = mapped_column("Percentage", Numeric)
     id_category: Mapped[uuid.UUID] = mapped_column(
-        "IdCategory", Uuid(), ForeignKey('"Categories"."Id"')
+        "IdCategory", Uuid(), ForeignKey("Categories.Id")
     )
     created_at: Mapped[datetime] = mapped_column("CreatedAt", DateTime)
     updated_at: Mapped[datetime | None] = mapped_column("UpdatedAt", DateTime)

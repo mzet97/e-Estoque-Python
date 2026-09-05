@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import Any
@@ -17,7 +17,6 @@ from e_estoque.shared.application.filtering import (
     Condition,
     FilterNode,
     Operator,
-    Or,
     parse_order_by,
 )
 from e_estoque.shared.domain.errors import ValidationError
@@ -65,9 +64,7 @@ def _convert(field_type: FieldType, raw: str) -> Any:
         raise ValidationError(f"Invalid filter value '{raw}'") from exc
 
 
-def _condition(
-    condition: Condition, model: Any, fields: FieldMap, cb: Any
-) -> ColumnElement[bool]:
+def _condition(condition: Condition, model: Any, fields: FieldMap, cb: Any) -> ColumnElement[bool]:
     fdef = fields.get(condition.field.lower())
     if fdef is None:
         raise ValidationError(f"Unknown filter field: {condition.field}")
@@ -78,32 +75,38 @@ def _condition(
         low = col.lower() if hasattr(col, "lower") else col
         match op:
             case Operator.EQ:
-                return col == condition.value
+                return _clause(col == condition.value)
             case Operator.NE:
-                return col != condition.value
+                return _clause(col != condition.value)
             case Operator.CONTAINS:
-                return low.like(f"%{_escape_like(condition.value.lower())}%", escape="\\")
+                return _clause(low.like(f"%{_escape_like(condition.value.lower())}%", escape="\\"))
             case Operator.STARTS_WITH:
-                return low.like(f"{_escape_like(condition.value.lower())}%", escape="\\")
+                return _clause(low.like(f"{_escape_like(condition.value.lower())}%", escape="\\"))
             case Operator.ENDS_WITH:
-                return low.like(f"%{_escape_like(condition.value.lower())}", escape="\\")
+                return _clause(low.like(f"%{_escape_like(condition.value.lower())}", escape="\\"))
             case _:
                 raise ValidationError(f"Operator {op} not supported for strings")
     match op:
         case Operator.EQ:
-            return col == value
+            return _clause(col == value)
         case Operator.NE:
-            return col != value
+            return _clause(col != value)
         case Operator.GT:
-            return col > value
+            return _clause(col > value)
         case Operator.GE:
-            return col >= value
+            return _clause(col >= value)
         case Operator.LT:
-            return col < value
+            return _clause(col < value)
         case Operator.LE:
-            return col <= value
+            return _clause(col <= value)
         case _:
             raise ValidationError(f"Operator {op} not supported for {fdef.type}")
+
+
+def _clause(element: Any) -> ColumnElement[bool]:
+    """Narrowing explícita do elemento SQLAlchemy gerado (sempre parametrizado)."""
+    result: ColumnElement[bool] = element
+    return result
 
 
 def _escape_like(value: str) -> str:
@@ -119,18 +122,19 @@ def build_filter(
         return None
     if isinstance(node, Condition):
         return _condition(node, model, fields, None)
+    children: list[ColumnElement[bool]] = []
+    for child in node.children:
+        predicate = build_filter(child, model, fields)
+        if predicate is not None:
+            children.append(predicate)
+    if not children:
+        return None
     if isinstance(node, And):
-        parts = [build_filter(child, model, fields) for child in node.children]
-        return and_(*parts)
-    if isinstance(node, Or):
-        parts = [build_filter(child, model, fields) for child in node.children]
-        return or_(*parts)
-    raise ValidationError("Unsupported filter node")
+        return and_(*children)
+    return or_(*children)
 
 
-def order_columns(
-    order_by: str | None, model: Any, fields: FieldMap
-) -> list[Any]:
+def order_columns(order_by: str | None, model: Any, fields: FieldMap) -> list[Any]:
     """Termos de ordenação com whitelist; default id ASC."""
     from sqlalchemy import asc, desc
 

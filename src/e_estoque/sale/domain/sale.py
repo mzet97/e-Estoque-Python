@@ -29,12 +29,13 @@ class SaleType(IntEnum):
     RECURRENT = 2
 
     @classmethod
-    def from_string(cls, value: str) -> "SaleType":
-        """FromString .NET: fallback UNITARY quando o parse falha."""
-        try:
-            return cls[value.upper()]
-        except KeyError:
-            return cls.UNITARY
+    def from_string(cls, value: str) -> SaleType:
+        """FromString .NET (TryParse case-insensitive); fallback UNITARY."""
+        key = value.strip().replace("_", "").replace(" ", "").upper()
+        for member in cls:
+            if member.name.upper() == key:
+                return member
+        return cls.UNITARY
 
 
 class PaymentType(IntEnum):
@@ -44,12 +45,13 @@ class PaymentType(IntEnum):
     DEBIT_CARD = 4
 
     @classmethod
-    def from_string(cls, value: str) -> "PaymentType":
-        """FromString .NET: fallback PIX quando o parse falha."""
-        try:
-            return cls[value.upper().replace("CREDIT CARD", "CREDIT_CARD")]
-        except KeyError:
-            return cls.PIX
+    def from_string(cls, value: str) -> PaymentType:
+        """FromString .NET (TryParse case-insensitive); fallback PIX."""
+        key = value.strip().replace("_", "").replace(" ", "").upper()
+        for member in cls:
+            if member.name.upper().replace("_", "") == key:
+                return member
+        return cls.PIX
 
 
 # ---- Domain Events ----
@@ -65,7 +67,7 @@ class SaleCreated(DomainEvent):
     sale_date: datetime
     payment_date: datetime | None
     id_customer: UUID
-    products: list["SaleProduct"]
+    products: list[SaleProduct]
     occurred_on: datetime = field(default_factory=utcnow)
 
 
@@ -81,7 +83,7 @@ class SaleUpdated(DomainEvent):
     sale_date: datetime
     payment_date: datetime | None
     id_customer: UUID
-    products: list["SaleProduct"]
+    products: list[SaleProduct]
     occurred_on: datetime = field(default_factory=utcnow)
 
 
@@ -108,7 +110,7 @@ class SaleProduct(Entity):
         self.id_sale = id_sale
 
     @classmethod
-    def create(cls, quantity: int, id_product: UUID, id_sale: UUID) -> "SaleProduct":
+    def create(cls, quantity: int, id_product: UUID, id_sale: UUID) -> SaleProduct:
         return cls(uuid4(), quantity, id_product, id_sale, utcnow())
 
     def validate(self) -> None:
@@ -124,8 +126,16 @@ class SaleProduct(Entity):
 
 class Sale(Entity):
     __slots__ = (
-        "quantity", "total_price", "total_tax", "sale_type", "payment_type",
-        "delivery_date", "sale_date", "payment_date", "id_customer", "sale_products",
+        "quantity",
+        "total_price",
+        "total_tax",
+        "sale_type",
+        "payment_type",
+        "delivery_date",
+        "sale_date",
+        "payment_date",
+        "id_customer",
+        "sale_products",
     )
 
     def __init__(
@@ -171,10 +181,18 @@ class Sale(Entity):
         payment_date: datetime | None,
         id_customer: UUID,
         ids_products: list[UUID],
-    ) -> "Sale":
+    ) -> Sale:
         sale = cls(
-            uuid4(), quantity, total_price, total_tax, sale_type, payment_type,
-            delivery_date, sale_date, payment_date, id_customer,
+            uuid4(),
+            quantity,
+            total_price,
+            total_tax,
+            sale_type,
+            payment_type,
+            delivery_date,
+            sale_date,
+            payment_date,
+            id_customer,
             [SaleProduct.create(quantity, pid, uuid4()) for pid in ids_products],
             utcnow(),
         )
@@ -182,8 +200,17 @@ class Sale(Entity):
             line.id_sale = sale.id
         sale.register_event(
             SaleCreated(
-                sale.id, quantity, total_price, total_tax, sale_type, payment_type,
-                delivery_date, sale_date, payment_date, id_customer, sale.sale_products,
+                sale.id,
+                quantity,
+                total_price,
+                total_tax,
+                sale_type,
+                payment_type,
+                delivery_date,
+                sale_date,
+                payment_date,
+                id_customer,
+                sale.sale_products,
             )
         )
         sale.validate()
@@ -207,11 +234,23 @@ class Sale(Entity):
         updated_at: datetime | None,
         deleted_at: datetime | None,
         is_deleted: bool,
-    ) -> "Sale":
+    ) -> Sale:
         sale = cls(
-            id, quantity, total_price, total_tax, sale_type, payment_type,
-            delivery_date, sale_date, payment_date, id_customer, sale_products,
-            created_at, updated_at, deleted_at, is_deleted,
+            id,
+            quantity,
+            total_price,
+            total_tax,
+            sale_type,
+            payment_type,
+            delivery_date,
+            sale_date,
+            payment_date,
+            id_customer,
+            sale_products,
+            created_at,
+            updated_at,
+            deleted_at,
+            is_deleted,
         )
         sale.validate()
         return sale
@@ -242,8 +281,17 @@ class Sale(Entity):
         self.touch(utcnow())
         self.register_event(
             SaleUpdated(
-                self.id, quantity, total_price, total_tax, sale_type, payment_type,
-                delivery_date, sale_date, payment_date, id_customer, self.sale_products,
+                self.id,
+                quantity,
+                total_price,
+                total_tax,
+                sale_type,
+                payment_type,
+                delivery_date,
+                sale_date,
+                payment_date,
+                id_customer,
+                self.sale_products,
             )
         )
         self.validate()
@@ -257,11 +305,17 @@ class Sale(Entity):
         provided_number(errors, self.sale_type, "SaleType")
         provided_number(errors, self.payment_type, "PaymentType")
         provided_number(errors, self.total_price, "TotalPrice")
-        when(self.total_price is not None and self.total_price <= 0,
-             "The TotalPrice needs to be greater than 0", errors)
+        when(
+            self.total_price is not None and self.total_price <= 0,
+            "The TotalPrice needs to be greater than 0",
+            errors,
+        )
         provided_number(errors, self.total_tax, "TotalTax")
-        when(self.total_tax is not None and self.total_tax <= 0,
-             "The TotalTax needs to be greater than 0", errors)
+        when(
+            self.total_tax is not None and self.total_tax <= 0,
+            "The TotalTax needs to be greater than 0",
+            errors,
+        )
         provided(errors, self.delivery_date, "DeliveryDate")
         provided(errors, self.sale_date, "SaleDate")
         provided(errors, self.payment_date, "PaymentDate")

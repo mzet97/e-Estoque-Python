@@ -32,12 +32,14 @@ from e_estoque.shared.api.schemas import (
     paged_search_bounds,
     paged_view,
 )
-from e_estoque.shared.api.security import CurrentUser, require_create
+from e_estoque.shared.api.security import CurrentUser, current_user, require_create
 from e_estoque.shared.api.views import inventory_view
 from e_estoque.shared.application.message_bus import MessageBus
 from e_estoque.shared.infrastructure.db import UnitOfWork, open_uow
 
-router = APIRouter(prefix="/api/Inventories", tags=["Inventories"])
+router = APIRouter(
+    prefix="/api/Inventories", tags=["Inventories"], dependencies=[Depends(current_user)]
+)
 
 
 def _repository(uow: Annotated[UnitOfWork, Depends(open_uow)]) -> InventoryRepository:
@@ -127,9 +129,16 @@ async def search(
     page, size = paged_search_bounds(page_index, page_size)
     result = await handler.handle(
         SearchInventoryQuery(
-            quantity=quantity, date_order=date_order, id_product=id_product, id=id,
-            created_at=created_at, updated_at=updated_at, deleted_at=deleted_at,
-            order=order, page_index=page, page_size=size,
+            quantity=quantity,
+            date_order=date_order,
+            id_product=id_product,
+            id=id,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            order=order,
+            page_index=page,
+            page_size=size,
         )
     )
     return BaseResultList(
@@ -171,7 +180,7 @@ async def create(
     get_handler: Annotated[GetByIdInventoryHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    inventory_id = await create_handler.handle(_to_command(payload))
+    inventory_id = await create_handler.handle(_to_create(payload))
     detailed = await get_handler.handle(inventory_id)
     return BaseResult(data=inventory_view(detailed))
 
@@ -184,7 +193,7 @@ async def update(
     get_handler: Annotated[GetByIdInventoryHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    await update_handler.handle(_to_command(payload, inventory_id))
+    await update_handler.handle(_to_update(inventory_id, payload))
     detailed = await get_handler.handle(inventory_id)
     return BaseResult(data=inventory_view(detailed))
 
@@ -199,10 +208,9 @@ async def delete(
     return {}
 
 
-def _to_command(
-    payload: CreateInventoryRequest, inventory_id: UUID | None = None
-) -> CreateInventoryCommand | UpdateInventoryCommand:
-    data = payload.model_dump()
-    if inventory_id is None:
-        return CreateInventoryCommand(**data)
-    return UpdateInventoryCommand(id=inventory_id, **data)
+def _to_create(payload: CreateInventoryRequest) -> CreateInventoryCommand:
+    return CreateInventoryCommand(**payload.model_dump())
+
+
+def _to_update(inventory_id: UUID, payload: UpdateInventoryRequest) -> UpdateInventoryCommand:
+    return UpdateInventoryCommand(id=inventory_id, **payload.model_dump())

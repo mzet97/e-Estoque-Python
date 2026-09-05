@@ -6,6 +6,7 @@ síncrona fire-and-forget; aqui o contrato de wire é idêntico, a resiliência 
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 

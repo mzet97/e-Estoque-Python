@@ -51,8 +51,8 @@ def event_payload(event: Any) -> dict[str, Any]:
 
 
 def serialize_event(event: Any) -> str:
-    """Serializa um dataclass de evento para o payload publicado."""
-    return json.dumps(event_payload(event), ensure_ascii=False)
+    """Serializa um dataclass de evento (compacto, como o System.Text.Json .NET)."""
+    return json.dumps(event_payload(event), ensure_ascii=False, separators=(",", ":"))
 
 
 def to_dash_case(name: str) -> str:

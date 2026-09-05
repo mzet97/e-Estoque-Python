@@ -9,9 +9,7 @@ from e_estoque.shared.domain.entity import Entity
 from e_estoque.shared.domain.errors import NotFoundError, ValidationError
 
 
-async def ensure_valid(
-    entity: Entity, bus: MessageBus, event_name: str, exchange: str
-) -> None:
+async def ensure_valid(entity: Entity, bus: MessageBus, event_name: str, exchange: str) -> None:
     """Entidade inválida → NotificationError no broker + ValidationError (HTTP 400)."""
     if not entity.is_valid:
         errors = entity.joined_errors

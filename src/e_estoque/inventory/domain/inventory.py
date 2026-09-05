@@ -55,11 +55,9 @@ class Inventory(Entity):
         self.id_product = id_product
 
     @classmethod
-    def create(cls, quantity: int, date_order: datetime, id_product: UUID) -> "Inventory":
+    def create(cls, quantity: int, date_order: datetime, id_product: UUID) -> Inventory:
         inventory = cls(uuid4(), quantity, date_order, id_product, utcnow())
-        inventory.register_event(
-            InventoryCreated(inventory.id, quantity, date_order, id_product)
-        )
+        inventory.register_event(InventoryCreated(inventory.id, quantity, date_order, id_product))
         inventory.validate()
         return inventory
 
@@ -74,7 +72,7 @@ class Inventory(Entity):
         updated_at: datetime | None,
         deleted_at: datetime | None,
         is_deleted: bool,
-    ) -> "Inventory":
+    ) -> Inventory:
         inventory = cls(
             id, quantity, date_order, id_product, created_at, updated_at, deleted_at, is_deleted
         )

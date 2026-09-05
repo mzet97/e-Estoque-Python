@@ -4,7 +4,7 @@
 | --- | --- | --- | --- |
 | A-01 | `Inventory.DateOrder` é `DateTime` no C#, mas `varchar(80)` no PostgreSQL (incompatível em PG real; testes .NET rodam em SQLite) | Coluna permanece `varchar(80)`; API aceita/retorna string ISO-8601; domínio valida datetime | Paridade de schema + contrato (frontend trata `dateOrder` como string ISO) |
 | A-02 | Timestamps .NET usam `DateTime.Now` (local) em colunas `timestamp` naive | Python usa UTC-aware em memória e persiste naive-UTC | Prompt §21 (UTC); coluna/tipo preservados; valores diferem apenas no offset |
-| A-03 | Paginação sem teto de `pageSize` no .NET | Sem teto (paridade); `page<1`/`pageSize<1` → 400 (BUG-FIX: .NET retornava 500) | Prompt §47; nenhum cliente depende de 500 |
+| A-03 | Paginação sem teto de `pageSize` no .NET | Sem teto (paridade); `page<1`/`pageSize<1` → 422 na boundary (BUG-FIX: .NET retornava 500) | NFR-DATA-003 + validação nativa FastAPI |
 | A-04 | `UpdateCompanyCommandHandler` publica eventos em `category-service` | Publica em `company-service` | BUG-FIX óbvio; nenhum consumidor existe para validar o contrário |
 | A-05 | `SearchCategoryQuery` filtra `shortDescription` contra coluna `Description` | Preservado (paridade) | Regra obtida do código; mudar quebraria clientes |
 | A-06 | DELETE retorna 200 `{}` (controllers) vs 204 (testes de integração .NET) | 200 `{}` (controllers vencem — precedência §2) | Ordem de precedência do prompt |

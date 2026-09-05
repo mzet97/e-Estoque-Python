@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from e_estoque.company.infrastructure.company_repository import SqlCompanyRepository
 from e_estoque.product.application.product_handlers import (
     CreateProductCommand,
     CreateProductHandler,
@@ -24,7 +25,6 @@ from e_estoque.product.application.product_handlers import (
     UpdateProductCommand,
     UpdateProductHandler,
 )
-from e_estoque.company.infrastructure.company_repository import SqlCompanyRepository
 from e_estoque.product.domain.product import (
     CategoryReader,
     CompanyReader,
@@ -38,12 +38,12 @@ from e_estoque.shared.api.schemas import (
     paged_search_bounds,
     paged_view,
 )
-from e_estoque.shared.api.security import CurrentUser, require_create
+from e_estoque.shared.api.security import CurrentUser, current_user, require_create
 from e_estoque.shared.api.views import product_view
 from e_estoque.shared.application.message_bus import MessageBus
 from e_estoque.shared.infrastructure.db import UnitOfWork, open_uow
 
-router = APIRouter(prefix="/api/Products", tags=["Products"])
+router = APIRouter(prefix="/api/Products", tags=["Products"], dependencies=[Depends(current_user)])
 
 
 def _repository(uow: Annotated[UnitOfWork, Depends(open_uow)]) -> ProductRepository:
@@ -152,15 +152,26 @@ async def search(
     page, size = paged_search_bounds(page_index, page_size)
     result = await handler.handle(
         SearchProductQuery(
-            name=name, description=description, short_description=short_description,
-            price=price, weight=weight, height=height, length=length,
-            id_category=id_category, id_company=id_company, id=id,
-            created_at=created_at, updated_at=updated_at, deleted_at=deleted_at,
-            order=order, page_index=page, page_size=size,
+            name=name,
+            description=description,
+            short_description=short_description,
+            price=price,
+            weight=weight,
+            height=height,
+            length=length,
+            id_category=id_category,
+            id_company=id_company,
+            id=id,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            order=order,
+            page_index=page,
+            page_size=size,
         )
     )
     return BaseResultList(
-        data=[product_view(d) for d in result.data],  # type: ignore[arg-type]
+        data=[product_view(d) for d in result.data],
         paged_result=paged_view(result),
     )
 
@@ -198,7 +209,7 @@ async def create(
     get_handler: Annotated[GetByIdProductHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    product_id = await create_handler.handle(_to_command(payload))
+    product_id = await create_handler.handle(_to_create(payload))
     detailed = await get_handler.handle(product_id)
     return BaseResult(data=product_view(detailed))
 
@@ -211,7 +222,7 @@ async def update(
     get_handler: Annotated[GetByIdProductHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    await update_handler.handle(_to_command(payload, product_id))
+    await update_handler.handle(_to_update(product_id, payload))
     detailed = await get_handler.handle(product_id)
     return BaseResult(data=product_view(detailed))
 
@@ -226,10 +237,9 @@ async def delete(
     return {}
 
 
-def _to_command(
-    payload: CreateProductRequest, product_id: UUID | None = None
-) -> CreateProductCommand | UpdateProductCommand:
-    data = payload.model_dump()
-    if product_id is None:
-        return CreateProductCommand(**data)
-    return UpdateProductCommand(id=product_id, **data)
+def _to_create(payload: CreateProductRequest) -> CreateProductCommand:
+    return CreateProductCommand(**payload.model_dump())
+
+
+def _to_update(product_id: UUID, payload: UpdateProductRequest) -> UpdateProductCommand:
+    return UpdateProductCommand(id=product_id, **payload.model_dump())

@@ -12,7 +12,7 @@ from e_estoque.customer.domain.customer import Customer, CustomerAddress, Custom
 from e_estoque.customer.infrastructure.models import CustomerModel
 from e_estoque.shared.application.filtering import parse_gridify_filter
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.paging import count_rows, page_rows
+from e_estoque.shared.infrastructure.paging import count_rows, page_scalars
 from e_estoque.shared.infrastructure.sql_filtering import (
     FieldDef,
     FieldType,
@@ -38,16 +38,28 @@ FILTER_FIELDS = {
 
 def _to_domain(model: CustomerModel) -> Customer:
     return Customer.rehydrate(
-        model.id, model.name, model.doc_id, model.email, model.description,
+        model.id,
+        model.name,
+        model.doc_id,
+        model.email,
+        model.description,
         model.phone_number,
         CustomerAddress(
-            street=model.address_street, number=model.address_number,
-            complement=model.address_complement, neighborhood=model.address_neighborhood,
-            district=model.address_district, city=model.address_city,
-            country=model.address_country, zip_code=model.address_zip_code,
-            latitude=model.address_latitude, longitude=model.address_longitude,
+            street=model.address_street,
+            number=model.address_number,
+            complement=model.address_complement,
+            neighborhood=model.address_neighborhood,
+            district=model.address_district,
+            city=model.address_city,
+            country=model.address_country,
+            zip_code=model.address_zip_code,
+            latitude=model.address_latitude,
+            longitude=model.address_longitude,
         ),
-        model.created_at, model.updated_at, model.deleted_at, model.is_deleted,
+        model.created_at,
+        model.updated_at,
+        model.deleted_at,
+        model.is_deleted,
     )
 
 
@@ -93,10 +105,12 @@ class SqlCustomerRepository:
             stmt = stmt.where(model.deleted_at == criteria.deleted_at)
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(criteria.order, model, FILTER_FIELDS))
-        rows = await page_rows(self._session, stmt, criteria.page, criteria.size)
+        rows = await page_scalars(self._session, stmt, criteria.page, criteria.size)
         return SearchResult(
             data=[_to_domain(row) for row in rows],
-            row_count=total, page=criteria.page, size=criteria.size,
+            row_count=total,
+            page=criteria.page,
+            size=criteria.size,
         )
 
     async def search_gridify(
@@ -109,7 +123,7 @@ class SqlCustomerRepository:
             stmt = stmt.where(where)
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(order_text, model, FILTER_FIELDS))
-        rows = await page_rows(self._session, stmt, page, size)
+        rows = await page_scalars(self._session, stmt, page, size)
         return SearchResult(
             data=[_to_domain(row) for row in rows], row_count=total, page=page, size=size
         )
@@ -126,8 +140,12 @@ class SqlCustomerRepository:
     @staticmethod
     def _to_model(customer: Customer) -> CustomerModel:
         return CustomerModel(
-            id=customer.id, name=customer.name, doc_id=customer.doc_id, email=customer.email,
-            description=customer.description, phone_number=customer.phone_number,
+            id=customer.id,
+            name=customer.name,
+            doc_id=customer.doc_id,
+            email=customer.email,
+            description=customer.description,
+            phone_number=customer.phone_number,
             address_street=customer.customer_address.street,
             address_number=customer.customer_address.number,
             address_complement=customer.customer_address.complement,
@@ -138,8 +156,10 @@ class SqlCustomerRepository:
             address_zip_code=customer.customer_address.zip_code,
             address_latitude=customer.customer_address.latitude,
             address_longitude=customer.customer_address.longitude,
-            created_at=customer.created_at, updated_at=customer.updated_at,
-            deleted_at=customer.deleted_at, is_deleted=customer.is_deleted,
+            created_at=customer.created_at,
+            updated_at=customer.updated_at,
+            deleted_at=customer.deleted_at,
+            is_deleted=customer.is_deleted,
         )
 
     @staticmethod

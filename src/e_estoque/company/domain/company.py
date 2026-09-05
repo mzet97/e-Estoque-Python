@@ -28,7 +28,7 @@ class CompanyCreated(DomainEvent):
     email: str
     description: str
     phone_number: str
-    company_address: "CompanyAddress"
+    company_address: CompanyAddress
     occurred_on: datetime = field(default_factory=utcnow)
 
 
@@ -40,7 +40,7 @@ class CompanyUpdated(DomainEvent):
     email: str
     description: str
     phone_number: str
-    company_address: "CompanyAddress"
+    company_address: CompanyAddress
     occurred_on: datetime = field(default_factory=utcnow)
 
 
@@ -64,7 +64,12 @@ class CompanyAddress:
 # ---- Entity ----
 class Company(Entity):
     __slots__ = (
-        "name", "doc_id", "email", "description", "phone_number", "company_address",
+        "name",
+        "doc_id",
+        "email",
+        "description",
+        "phone_number",
+        "company_address",
     )
 
     def __init__(
@@ -98,10 +103,16 @@ class Company(Entity):
         description: str,
         phone_number: str,
         company_address: CompanyAddress,
-    ) -> "Company":
+    ) -> Company:
         company = cls(
-            new_id(), name, doc_id, email, description, phone_number,
-            company_address, utcnow(),
+            new_id(),
+            name,
+            doc_id,
+            email,
+            description,
+            phone_number,
+            company_address,
+            utcnow(),
         )
         company.register_event(
             CompanyCreated(
@@ -125,10 +136,19 @@ class Company(Entity):
         updated_at: datetime | None,
         deleted_at: datetime | None,
         is_deleted: bool,
-    ) -> "Company":
+    ) -> Company:
         company = cls(
-            id, name, doc_id, email, description, phone_number, company_address,
-            created_at, updated_at, deleted_at, is_deleted,
+            id,
+            name,
+            doc_id,
+            email,
+            description,
+            phone_number,
+            company_address,
+            created_at,
+            updated_at,
+            deleted_at,
+            is_deleted,
         )
         company.validate()
         return company
@@ -150,9 +170,7 @@ class Company(Entity):
         self.company_address = company_address
         self.touch(utcnow())
         self.register_event(
-            CompanyUpdated(
-                self.id, name, doc_id, email, description, phone_number, company_address
-            )
+            CompanyUpdated(self.id, name, doc_id, email, description, phone_number, company_address)
         )
         self.validate()
 

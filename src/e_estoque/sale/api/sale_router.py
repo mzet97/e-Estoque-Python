@@ -34,12 +34,12 @@ from e_estoque.shared.api.schemas import (
     paged_search_bounds,
     paged_view,
 )
-from e_estoque.shared.api.security import CurrentUser, require_create
+from e_estoque.shared.api.security import CurrentUser, current_user, require_create
 from e_estoque.shared.api.views import sale_view
 from e_estoque.shared.application.message_bus import MessageBus
 from e_estoque.shared.infrastructure.db import UnitOfWork, open_uow
 
-router = APIRouter(prefix="/api/Sales", tags=["Sales"])
+router = APIRouter(prefix="/api/Sales", tags=["Sales"], dependencies=[Depends(current_user)])
 
 
 def _repository(uow: Annotated[UnitOfWork, Depends(open_uow)]) -> SaleRepository:
@@ -149,18 +149,26 @@ async def search(
     page, size = paged_search_bounds(page_index, page_size)
     result = await handler.handle(
         SearchSaleQuery(
-            quantity=quantity, total_price=total_price, total_tax=total_tax,
-            sale_type=sale_type, payment_type=payment_type,
-            delivery_date=delivery_date, sale_date=sale_date,
-            payment_date=payment_date, id_product=id_product,
-            id_customer=id_customer, id=id,
-            created_at=created_at, updated_at=updated_at, deleted_at=deleted_at,
-            order=order, page_index=page, page_size=size,
+            quantity=quantity,
+            total_price=total_price,
+            total_tax=total_tax,
+            sale_type=sale_type,
+            payment_type=payment_type,
+            delivery_date=delivery_date,
+            sale_date=sale_date,
+            payment_date=payment_date,
+            id_product=id_product,
+            id_customer=id_customer,
+            id=id,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            order=order,
+            page_index=page,
+            page_size=size,
         )
     )
-    return BaseResultList(
-        data=[sale_view(d) for d in result.data], paged_result=paged_view(result)
-    )
+    return BaseResultList(data=[sale_view(d) for d in result.data], paged_result=paged_view(result))
 
 
 @router.get("/gridify")
@@ -174,9 +182,7 @@ async def search_gridify(
     result = await handler.handle(
         GridifySaleQuery(filter=filter, order_by=order_by, page=page, page_size=page_size)
     )
-    return BaseResultList(
-        data=[sale_view(d) for d in result.data], paged_result=paged_view(result)
-    )
+    return BaseResultList(data=[sale_view(d) for d in result.data], paged_result=paged_view(result))
 
 
 @router.get("/{sale_id}")
@@ -195,7 +201,7 @@ async def create(
     get_handler: Annotated[GetByIdSaleHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    sale_id = await create_handler.handle(_to_command(payload))
+    sale_id = await create_handler.handle(_to_create(payload))
     detailed = await get_handler.handle(sale_id)
     return BaseResult(data=sale_view(detailed))
 
@@ -208,7 +214,7 @@ async def update(
     get_handler: Annotated[GetByIdSaleHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    await update_handler.handle(_to_command(payload, sale_id))
+    await update_handler.handle(_to_update(sale_id, payload))
     detailed = await get_handler.handle(sale_id)
     return BaseResult(data=sale_view(detailed))
 
@@ -223,11 +229,10 @@ async def delete(
     return {}
 
 
-def _to_command(
-    payload: CreateSaleRequest, sale_id: UUID | None = None
-) -> CreateSaleCommand | UpdateSaleCommand:
-    data = payload.model_dump()
+def _to_create(payload: CreateSaleRequest) -> CreateSaleCommand:
     # Datas nulas seguem ao domínio: SaleValidation exige deliveryDate/paymentDate.
-    if sale_id is None:
-        return CreateSaleCommand(**data)
-    return UpdateSaleCommand(id=sale_id, **data)
+    return CreateSaleCommand(**payload.model_dump())
+
+
+def _to_update(sale_id: UUID, payload: UpdateSaleRequest) -> UpdateSaleCommand:
+    return UpdateSaleCommand(id=sale_id, **payload.model_dump())

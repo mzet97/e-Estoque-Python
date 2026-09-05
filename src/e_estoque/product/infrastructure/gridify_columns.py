@@ -6,13 +6,11 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import and_, or_
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from e_estoque.product.infrastructure.models import CategoryModel, ProductModel
 from e_estoque.shared.application.filtering import (
     FilterNode,
     Operator,
-    parse_gridify_filter,
 )
 from e_estoque.shared.domain.errors import ValidationError
 

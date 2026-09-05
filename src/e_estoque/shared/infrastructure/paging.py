@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -19,12 +19,16 @@ async def count_rows(session: AsyncSession, stmt: Select[Any]) -> int:
     return int(result or 0)
 
 
-async def page_rows(
-    session: AsyncSession, stmt: Select[Any], page: int, size: int
-) -> list[Any]:
+async def page_rows(session: AsyncSession, stmt: Select[Any], page: int, size: int) -> list[Any]:
     """Aplica offset/limit 1-based e devolve as linhas da página."""
     paged = stmt.offset((page - 1) * size).limit(size)
     return list((await session.execute(paged)).all())
+
+
+async def page_scalars(session: AsyncSession, stmt: Select[Any], page: int, size: int) -> list[Any]:
+    """Como `page_rows`, para selects de entidade única (devolve entidades)."""
+    paged = stmt.offset((page - 1) * size).limit(size)
+    return list((await session.scalars(paged)).all())
 
 
 async def one_or_none(session: AsyncSession, stmt: Select[Any]) -> Any:

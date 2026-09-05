@@ -35,12 +35,14 @@ from e_estoque.shared.api.schemas import (
     paged_search_bounds,
     paged_view,
 )
-from e_estoque.shared.api.security import CurrentUser, require_create
+from e_estoque.shared.api.security import CurrentUser, current_user, require_create
 from e_estoque.shared.api.views import CategoryView
 from e_estoque.shared.application.message_bus import MessageBus
 from e_estoque.shared.infrastructure.db import UnitOfWork, open_uow
 
-router = APIRouter(prefix="/api/Categories", tags=["Categories"])
+router = APIRouter(
+    prefix="/api/Categories", tags=["Categories"], dependencies=[Depends(current_user)]
+)
 
 
 # ---- dependências ----

@@ -49,7 +49,9 @@ class ReferenceCache:
 
     async def set_json(self, key: str, value: Any) -> None:
         try:
-            await self._client.set(key, json.dumps(value, ensure_ascii=False), ex=REFERENCE_TTL_SECONDS)
+            await self._client.set(
+                key, json.dumps(value, ensure_ascii=False), ex=REFERENCE_TTL_SECONDS
+            )
         except Exception as exc:  # noqa: BLE001
             logger.warning("cache set falhou (%s): %s", key, exc)
 

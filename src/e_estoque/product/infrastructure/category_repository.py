@@ -18,7 +18,7 @@ from e_estoque.product.domain.category import Category, CategoryCriteria, Catego
 from e_estoque.product.infrastructure.models import CategoryModel
 from e_estoque.shared.application.filtering import parse_gridify_filter
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.paging import count_rows, page_rows
+from e_estoque.shared.infrastructure.paging import count_rows, page_scalars
 from e_estoque.shared.infrastructure.sql_filtering import (
     FieldDef,
     FieldType,
@@ -108,7 +108,7 @@ class SqlCategoryRepository(CategoryRepository):
         total = await count_rows(self._session, stmt)
         # Order do .NET é sempre ascendente; default Id para paginação determinística.
         stmt = stmt.order_by(*order_columns(criteria.order, model, FILTER_FIELDS))
-        rows = await page_rows(self._session, stmt, criteria.page, criteria.size)
+        rows = await page_scalars(self._session, stmt, criteria.page, criteria.size)
         return SearchResult(
             data=[_to_domain(row) for row in rows],
             row_count=total,
@@ -126,7 +126,7 @@ class SqlCategoryRepository(CategoryRepository):
             stmt = stmt.where(where)
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(order_text, model, FILTER_FIELDS))
-        rows = await page_rows(self._session, stmt, page, size)
+        rows = await page_scalars(self._session, stmt, page, size)
         return SearchResult(
             data=[_to_domain(row) for row in rows], row_count=total, page=page, size=size
         )

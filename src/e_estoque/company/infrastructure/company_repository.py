@@ -5,14 +5,13 @@ from __future__ import annotations
 from uuid import UUID
 
 from sqlalchemy import func, select
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from e_estoque.company.domain.company import Company, CompanyAddress, CompanyCriteria
 from e_estoque.company.infrastructure.models import CompanyModel
 from e_estoque.shared.application.filtering import parse_gridify_filter
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.paging import count_rows, page_rows
+from e_estoque.shared.infrastructure.paging import count_rows, page_scalars
 from e_estoque.shared.infrastructure.sql_filtering import (
     FieldDef,
     FieldType,
@@ -38,16 +37,28 @@ FILTER_FIELDS = {
 
 def _to_domain(model: CompanyModel) -> Company:
     return Company.rehydrate(
-        model.id, model.name, model.doc_id, model.email, model.description,
+        model.id,
+        model.name,
+        model.doc_id,
+        model.email,
+        model.description,
         model.phone_number,
         CompanyAddress(
-            street=model.address_street, number=model.address_number,
-            complement=model.address_complement, neighborhood=model.address_neighborhood,
-            district=model.address_district, city=model.address_city,
-            country=model.address_country, zip_code=model.address_zip_code,
-            latitude=model.address_latitude, longitude=model.address_longitude,
+            street=model.address_street,
+            number=model.address_number,
+            complement=model.address_complement,
+            neighborhood=model.address_neighborhood,
+            district=model.address_district,
+            city=model.address_city,
+            country=model.address_country,
+            zip_code=model.address_zip_code,
+            latitude=model.address_latitude,
+            longitude=model.address_longitude,
         ),
-        model.created_at, model.updated_at, model.deleted_at, model.is_deleted,
+        model.created_at,
+        model.updated_at,
+        model.deleted_at,
+        model.is_deleted,
     )
 
 
@@ -72,9 +83,7 @@ class SqlCompanyRepository:
         return found is not None
 
     async def count_all(self) -> int:
-        return int(
-            await self._session.scalar(select(func.count()).select_from(CompanyModel)) or 0
-        )
+        return int(await self._session.scalar(select(func.count()).select_from(CompanyModel)) or 0)
 
     async def search(self, criteria: CompanyCriteria) -> SearchResult[Company]:
         model = CompanyModel
@@ -98,10 +107,12 @@ class SqlCompanyRepository:
             stmt = stmt.where(model.deleted_at == criteria.deleted_at)
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(criteria.order, model, FILTER_FIELDS))
-        rows = await page_rows(self._session, stmt, criteria.page, criteria.size)
+        rows = await page_scalars(self._session, stmt, criteria.page, criteria.size)
         return SearchResult(
             data=[_to_domain(row) for row in rows],
-            row_count=total, page=criteria.page, size=criteria.size,
+            row_count=total,
+            page=criteria.page,
+            size=criteria.size,
         )
 
     async def search_gridify(
@@ -114,7 +125,7 @@ class SqlCompanyRepository:
             stmt = stmt.where(where)
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(order_text, model, FILTER_FIELDS))
-        rows = await page_rows(self._session, stmt, page, size)
+        rows = await page_scalars(self._session, stmt, page, size)
         return SearchResult(
             data=[_to_domain(row) for row in rows], row_count=total, page=page, size=size
         )
@@ -127,8 +138,12 @@ class SqlCompanyRepository:
     @staticmethod
     def _to_model(company: Company) -> CompanyModel:
         return CompanyModel(
-            id=company.id, name=company.name, doc_id=company.doc_id, email=company.email,
-            description=company.description, phone_number=company.phone_number,
+            id=company.id,
+            name=company.name,
+            doc_id=company.doc_id,
+            email=company.email,
+            description=company.description,
+            phone_number=company.phone_number,
             address_street=company.company_address.street,
             address_number=company.company_address.number,
             address_complement=company.company_address.complement,
@@ -139,8 +154,10 @@ class SqlCompanyRepository:
             address_zip_code=company.company_address.zip_code,
             address_latitude=company.company_address.latitude,
             address_longitude=company.company_address.longitude,
-            created_at=company.created_at, updated_at=company.updated_at,
-            deleted_at=company.deleted_at, is_deleted=company.is_deleted,
+            created_at=company.created_at,
+            updated_at=company.updated_at,
+            deleted_at=company.deleted_at,
+            is_deleted=company.is_deleted,
         )
 
     @staticmethod

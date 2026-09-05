@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from e_estoque.company.domain.company import Company, CompanyAddress, CompanyCriteria
-from e_estoque.company.domain.company import CompanyRepository
+from e_estoque.company.domain.company import (
+    Company,
+    CompanyAddress,
+    CompanyCriteria,
+    CompanyRepository,
+)
 from e_estoque.shared.application.address_input import AddressInput
 from e_estoque.shared.application.handlers_support import (
     ensure_found,
@@ -16,8 +19,8 @@ from e_estoque.shared.application.handlers_support import (
     publish_events,
 )
 from e_estoque.shared.application.message_bus import NOTIFICATION_EXCHANGE, MessageBus
+from e_estoque.shared.application.unit_of_work import UnitOfWork
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.db import UnitOfWork
 
 EXCHANGE = "company-service"
 
@@ -55,33 +58,37 @@ class SearchCompanyQuery:
     email: str = ""
     description: str = ""
     phone_number: str = ""
-    id: Optional[UUID] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-    order: Optional[str] = None
+    id: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    deleted_at: datetime | None = None
+    order: str | None = None
     page_index: int = 1
     page_size: int = 10
 
 
 @dataclass(frozen=True, slots=True)
 class GridifyCompanyQuery:
-    filter: Optional[str] = None
-    order_by: Optional[str] = None
+    filter: str | None = None
+    order_by: str | None = None
     page: int = 1
     page_size: int = 10
 
 
 class CreateCompanyHandler:
-    def __init__(self, repository, uow: UnitOfWork, bus: MessageBus) -> None:
+    def __init__(self, repository: CompanyRepository, uow: UnitOfWork, bus: MessageBus) -> None:
         self._repository = repository
         self._uow = uow
         self._bus = bus
 
     async def handle(self, command: CreateCompanyCommand) -> UUID:
         company = Company.create(
-            command.name, command.doc_id, command.email, command.description,
-            command.phone_number, command.company_address.to_vo(CompanyAddress),
+            command.name,
+            command.doc_id,
+            command.email,
+            command.description,
+            command.phone_number,
+            command.company_address.to_vo(CompanyAddress),
         )
         await ensure_valid(company, self._bus, "Validate Company has error", NOTIFICATION_EXCHANGE)
         await self._repository.save(company)
@@ -93,7 +100,7 @@ class CreateCompanyHandler:
 
 
 class UpdateCompanyHandler:
-    def __init__(self, repository, uow: UnitOfWork, bus: MessageBus) -> None:
+    def __init__(self, repository: CompanyRepository, uow: UnitOfWork, bus: MessageBus) -> None:
         self._repository = repository
         self._uow = uow
         self._bus = bus
@@ -105,8 +112,12 @@ class UpdateCompanyHandler:
         )
         assert company is not None  # garantido por ensure_found
         company.update(
-            command.name, command.doc_id, command.email, command.description,
-            command.phone_number, command.company_address.to_vo(CompanyAddress),
+            command.name,
+            command.doc_id,
+            command.email,
+            command.description,
+            command.phone_number,
+            command.company_address.to_vo(CompanyAddress),
         )
         await ensure_valid(company, self._bus, "Validate Company has error", NOTIFICATION_EXCHANGE)
         await self._repository.save(company)
@@ -116,7 +127,7 @@ class UpdateCompanyHandler:
 
 
 class DeleteCompanyHandler:
-    def __init__(self, repository, uow: UnitOfWork, bus: MessageBus) -> None:
+    def __init__(self, repository: CompanyRepository, uow: UnitOfWork, bus: MessageBus) -> None:
         self._repository = repository
         self._uow = uow
         self._bus = bus
@@ -132,7 +143,7 @@ class DeleteCompanyHandler:
 
 
 class GetByIdCompanyHandler:
-    def __init__(self, repository, bus: MessageBus) -> None:
+    def __init__(self, repository: CompanyRepository, bus: MessageBus) -> None:
         self._repository = repository
         self._bus = bus
 
@@ -146,22 +157,29 @@ class GetByIdCompanyHandler:
 
 
 class SearchCompanyHandler:
-    def __init__(self, repository) -> None:
+    def __init__(self, repository: CompanyRepository) -> None:
         self._repository = repository
 
     async def handle(self, query: SearchCompanyQuery) -> SearchResult[Company]:
         criteria = CompanyCriteria(
-            name=query.name, doc_id=query.doc_id, email=query.email,
-            description=query.description, phone_number=query.phone_number,
-            id=query.id, created_at=query.created_at, updated_at=query.updated_at,
-            deleted_at=query.deleted_at, order=query.order,
-            page=query.page_index, size=query.page_size,
+            name=query.name,
+            doc_id=query.doc_id,
+            email=query.email,
+            description=query.description,
+            phone_number=query.phone_number,
+            id=query.id,
+            created_at=query.created_at,
+            updated_at=query.updated_at,
+            deleted_at=query.deleted_at,
+            order=query.order,
+            page=query.page_index,
+            size=query.page_size,
         )
         return await self._repository.search(criteria)
 
 
 class GridifyCompanyHandler:
-    def __init__(self, repository) -> None:
+    def __init__(self, repository: CompanyRepository) -> None:
         self._repository = repository
 
     async def handle(self, query: GridifyCompanyQuery) -> SearchResult[Company]:

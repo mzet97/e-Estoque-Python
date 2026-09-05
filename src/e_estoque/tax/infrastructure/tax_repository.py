@@ -35,8 +35,15 @@ FILTER_FIELDS = {
 
 def _to_domain(model: TaxModel) -> Tax:
     return Tax.rehydrate(
-        model.id, model.name, model.description, model.percentage, model.id_category,
-        model.created_at, model.updated_at, model.deleted_at, model.is_deleted,
+        model.id,
+        model.name,
+        model.description,
+        model.percentage,
+        model.id_category,
+        model.created_at,
+        model.updated_at,
+        model.deleted_at,
+        model.is_deleted,
     )
 
 
@@ -44,13 +51,17 @@ def _category_summary(model: CategorySummaryModel | None) -> CategorySummary | N
     if model is None:
         return None
     return CategorySummary(
-        id=model.id, name=model.name, description=model.description,
+        id=model.id,
+        name=model.name,
+        description=model.description,
         short_description=model.short_description,
-        created_at=model.created_at, updated_at=model.updated_at, deleted_at=model.deleted_at,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+        deleted_at=model.deleted_at,
     )
 
 
-def _base_stmt() -> Select[tuple[TaxModel, CategorySummaryModel | None]]:
+def _base_stmt() -> Select[tuple[TaxModel, CategorySummaryModel]]:
     return select(TaxModel, CategorySummaryModel).outerjoin(
         CategorySummaryModel, TaxModel.id_category == CategorySummaryModel.id
     )
@@ -65,10 +76,15 @@ class SqlTaxRepository(TaxRepository):
         if model is None:
             self._session.add(
                 TaxModel(
-                    id=tax.id, name=tax.name, description=tax.description,
-                    percentage=tax.percentage, id_category=tax.id_category,
-                    created_at=tax.created_at, updated_at=tax.updated_at,
-                    deleted_at=tax.deleted_at, is_deleted=tax.is_deleted,
+                    id=tax.id,
+                    name=tax.name,
+                    description=tax.description,
+                    percentage=tax.percentage,
+                    id_category=tax.id_category,
+                    created_at=tax.created_at,
+                    updated_at=tax.updated_at,
+                    deleted_at=tax.deleted_at,
+                    is_deleted=tax.is_deleted,
                 )
             )
             return
@@ -128,14 +144,16 @@ class SqlTaxRepository(TaxRepository):
             await self._session.delete(model)
 
     async def _run_paged(
-        self, stmt: Select[tuple[TaxModel, CategorySummaryModel | None]],
-        page: int, size: int, order_text: str | None,
+        self,
+        stmt: Select[tuple[TaxModel, CategorySummaryModel]],
+        page: int,
+        size: int,
+        order_text: str | None,
     ) -> SearchResult[Detailed[Tax]]:
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(order_text, TaxModel, FILTER_FIELDS))
         rows = await page_rows(self._session, stmt, page, size)
         data = [
-            Detailed(entity=_to_domain(row[0]), category=_category_summary(row[1]))
-            for row in rows
+            Detailed(entity=_to_domain(row[0]), category=_category_summary(row[1])) for row in rows
         ]
         return SearchResult(data=data, row_count=total, page=page, size=size)

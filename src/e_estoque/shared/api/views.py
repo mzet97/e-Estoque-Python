@@ -168,15 +168,34 @@ class TaxLike(_Audited, Protocol):
 
 
 class SaleLike(_Audited, Protocol):
-    quantity: int
-    total_price: Decimal
-    total_tax: Decimal
-    sale_type: int
-    payment_type: int
-    delivery_date: datetime
-    sale_date: datetime
-    payment_date: datetime
-    id_customer: UUID
+    """SaleLike com propriedades (IntEnum <: int pela covariância de leitura)."""
+
+    @property
+    def quantity(self) -> int: ...
+
+    @property
+    def total_price(self) -> Decimal: ...
+
+    @property
+    def total_tax(self) -> Decimal: ...
+
+    @property
+    def sale_type(self) -> int: ...
+
+    @property
+    def payment_type(self) -> int: ...
+
+    @property
+    def delivery_date(self) -> datetime | None: ...
+
+    @property
+    def sale_date(self) -> datetime: ...
+
+    @property
+    def payment_date(self) -> datetime | None: ...
+
+    @property
+    def id_customer(self) -> UUID: ...
 
 
 def _address(value: Any) -> AddressView:
@@ -185,26 +204,41 @@ def _address(value: Any) -> AddressView:
 
 def category_view(summary: CategorySummary) -> CategoryView:
     return CategoryView(
-        id=summary.id, created_at=summary.created_at, updated_at=summary.updated_at,
-        deleted_at=summary.deleted_at, name=summary.name, description=summary.description,
+        id=summary.id,
+        created_at=summary.created_at,
+        updated_at=summary.updated_at,
+        deleted_at=summary.deleted_at,
+        name=summary.name,
+        description=summary.description,
         short_description=summary.short_description,
     )
 
 
 def company_view(summary: CompanySummary) -> CompanyView:
     return CompanyView(
-        id=summary.id, created_at=summary.created_at, updated_at=summary.updated_at,
-        deleted_at=summary.deleted_at, name=summary.name, doc_id=summary.doc_id,
-        email=summary.email, description=summary.description,
-        phone_number=summary.phone_number, company_address=_address(summary.company_address),
+        id=summary.id,
+        created_at=summary.created_at,
+        updated_at=summary.updated_at,
+        deleted_at=summary.deleted_at,
+        name=summary.name,
+        doc_id=summary.doc_id,
+        email=summary.email,
+        description=summary.description,
+        phone_number=summary.phone_number,
+        company_address=_address(summary.company_address),
     )
 
 
 def customer_view(summary: CustomerSummary) -> CustomerView:
     return CustomerView(
-        id=summary.id, created_at=summary.created_at, updated_at=summary.updated_at,
-        deleted_at=summary.deleted_at, name=summary.name, doc_id=summary.doc_id,
-        email=summary.email, description=summary.description,
+        id=summary.id,
+        created_at=summary.created_at,
+        updated_at=summary.updated_at,
+        deleted_at=summary.deleted_at,
+        name=summary.name,
+        doc_id=summary.doc_id,
+        email=summary.email,
+        description=summary.description,
         phone_number=summary.phone_number,
         customer_address=_address(summary.customer_address),
     )
@@ -212,61 +246,96 @@ def customer_view(summary: CustomerSummary) -> CustomerView:
 
 def product_summary_view(summary: ProductSummary) -> ProductView:
     return ProductView(
-        id=summary.id, created_at=summary.created_at, updated_at=summary.updated_at,
-        deleted_at=summary.deleted_at, name=summary.name,
-        description=summary.description, short_description=summary.short_description,
-        image=summary.image, price=summary.price, weight=summary.weight,
-        height=summary.height, length=summary.length, id_category=summary.id_category,
+        id=summary.id,
+        created_at=summary.created_at,
+        updated_at=summary.updated_at,
+        deleted_at=summary.deleted_at,
+        name=summary.name,
+        description=summary.description,
+        short_description=summary.short_description,
+        image=summary.image,
+        price=summary.price,
+        weight=summary.weight,
+        height=summary.height,
+        length=summary.length,
+        id_category=summary.id_category,
         category=category_view(summary.category) if summary.category else None,
         id_company=summary.id_company,
         company=company_view(summary.company) if summary.company else None,
     )
 
 
-def product_view(detailed: Detailed[ProductLike]) -> ProductView:
+def product_view[T: ProductLike](detailed: Detailed[T]) -> ProductView:
     """View de Product a partir da entidade + summaries (includes .NET)."""
     entity = detailed.entity
     return ProductView(
-        id=entity.id, created_at=entity.created_at, updated_at=entity.updated_at,
-        deleted_at=entity.deleted_at, name=entity.name, description=entity.description,
-        short_description=entity.short_description, image=entity.image,
-        price=entity.price, weight=entity.weight, height=entity.height,
-        length=entity.length, id_category=entity.id_category,
+        id=entity.id,
+        created_at=entity.created_at,
+        updated_at=entity.updated_at,
+        deleted_at=entity.deleted_at,
+        name=entity.name,
+        description=entity.description,
+        short_description=entity.short_description,
+        image=entity.image,
+        price=entity.price,
+        weight=entity.weight,
+        height=entity.height,
+        length=entity.length,
+        id_category=entity.id_category,
         category=category_view(detailed.category) if detailed.category else None,
         id_company=entity.id_company,
         company=company_view(detailed.company) if detailed.company else None,
     )
 
 
-def inventory_view(detailed: Detailed[InventoryLike]) -> InventoryView:
+def inventory_view[T: InventoryLike](detailed: Detailed[T]) -> InventoryView:
     entity = detailed.entity
     return InventoryView(
-        id=entity.id, created_at=entity.created_at, updated_at=entity.updated_at,
-        deleted_at=entity.deleted_at, quantity=entity.quantity,
-        date_order=entity.date_order.isoformat(), id_product=entity.id_product,
+        id=entity.id,
+        created_at=entity.created_at,
+        updated_at=entity.updated_at,
+        deleted_at=entity.deleted_at,
+        quantity=entity.quantity,
+        date_order=entity.date_order.isoformat(),
+        id_product=entity.id_product,
         product=product_summary_view(detailed.product) if detailed.product else None,
     )
 
 
-def tax_view(detailed: Detailed[TaxLike]) -> TaxView:
+def tax_view[T: TaxLike](detailed: Detailed[T]) -> TaxView:
     entity = detailed.entity
     return TaxView(
-        id=entity.id, created_at=entity.created_at, updated_at=entity.updated_at,
-        deleted_at=entity.deleted_at, name=entity.name, description=entity.description,
-        percentage=entity.percentage, id_category=entity.id_category,
+        id=entity.id,
+        created_at=entity.created_at,
+        updated_at=entity.updated_at,
+        deleted_at=entity.deleted_at,
+        name=entity.name,
+        description=entity.description,
+        percentage=entity.percentage,
+        id_category=entity.id_category,
         category=category_view(detailed.category) if detailed.category else None,
     )
 
 
-def sale_view(detailed: Detailed[SaleLike]) -> SaleView:
+def sale_view[T: SaleLike](detailed: Detailed[T]) -> SaleView:
     entity = detailed.entity
+    # SaleValidation garante datas não nulas nas vendas expostas pelo contrato.
+    assert entity.delivery_date is not None
+    assert entity.payment_date is not None
     return SaleView(
-        id=entity.id, created_at=entity.created_at, updated_at=entity.updated_at,
-        deleted_at=entity.deleted_at, quantity=entity.quantity,
-        total_price=entity.total_price, total_tax=entity.total_tax,
-        sale_type=int(entity.sale_type), payment_type=int(entity.payment_type),
-        delivery_date=entity.delivery_date, sale_date=entity.sale_date,
-        payment_date=entity.payment_date, id_customer=entity.id_customer,
+        id=entity.id,
+        created_at=entity.created_at,
+        updated_at=entity.updated_at,
+        deleted_at=entity.deleted_at,
+        quantity=entity.quantity,
+        total_price=entity.total_price,
+        total_tax=entity.total_tax,
+        sale_type=int(entity.sale_type),
+        payment_type=int(entity.payment_type),
+        delivery_date=entity.delivery_date,
+        sale_date=entity.sale_date,
+        payment_date=entity.payment_date,
+        id_customer=entity.id_customer,
         customer=customer_view(detailed.customer) if detailed.customer else None,
         products=[product_summary_view(p) for p in detailed.products],
     )

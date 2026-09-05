@@ -10,7 +10,7 @@
 | NFR-SEC-004 | Sem `eval`/`exec` em parsing de filtros (Gridify/OData) | Revisão + testes de parser |
 | NFR-DATA-001 | Schema PostgreSQL compatível com o .NET (tabelas, tipos, FKs NO ACTION, indexes) | `14-DATABASE-PARITY.md` + integração em PG real |
 | NFR-DATA-002 | Money/taxas como `Decimal` (nunca float); timestamps UTC em memória, colunas `timestamp` (naive) por paridade | Testes de unidade |
-| NFR-DATA-003 | Paginação defensiva: `page>=1`, `pageSize>=1` (sem teto — paridade); valores inválidos → 400 | Testes |
+| NFR-DATA-003 | Paginação defensiva: `page>=1`, `pageSize>=1` (sem teto — paridade); valores inválidos → 422 na boundary | Testes |
 | NFR-PERF-001 | Stack async ponta a ponta (asyncpg, aio-pika, redis.asyncio); event loop sem bloqueios | Revisão; testes async |
 | NFR-OBS-001 | Logs estruturados JSON (timestamp, level, logger, event, request_id, trace_id quando ativo); sem dados sensíveis | Testes de sanitizer |
 | NFR-OBS-002 | OpenTelemetry (traces FastAPI/HTTP/SQLAlchemy) exportável via OTLP; desligável por config | Smoke em dev |

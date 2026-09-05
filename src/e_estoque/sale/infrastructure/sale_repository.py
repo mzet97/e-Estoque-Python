@@ -19,6 +19,7 @@ from e_estoque.sale.domain.sale import (
     SaleType,
 )
 from e_estoque.sale.infrastructure.models import (
+    CompanySummaryModel,
     CustomerSummaryModel,
     SaleModel,
     SaleProductModel,
@@ -63,8 +64,14 @@ __all__ = [
 def _to_lines(model: SaleModel) -> list[SaleProduct]:
     return [
         SaleProduct(
-            line.id, line.quantity, line.id_product, line.id_sale,
-            line.created_at, line.updated_at, line.deleted_at, line.is_deleted,
+            line.id,
+            line.quantity,
+            line.id_product,
+            line.id_sale,
+            line.created_at,
+            line.updated_at,
+            line.deleted_at,
+            line.is_deleted,
         )
         for line in model.sale_products
     ]
@@ -72,21 +79,36 @@ def _to_lines(model: SaleModel) -> list[SaleProduct]:
 
 def _to_domain(model: SaleModel) -> Sale:
     return Sale.rehydrate(
-        model.id, model.quantity, model.total_price, model.total_tax,
-        SaleType(model.sale_type), PaymentType(model.payment_type),
-        model.delivery_date, model.sale_date, model.payment_date,
-        model.id_customer, _to_lines(model),
-        model.created_at, model.updated_at, model.deleted_at, model.is_deleted,
+        model.id,
+        model.quantity,
+        model.total_price,
+        model.total_tax,
+        SaleType(model.sale_type),
+        PaymentType(model.payment_type),
+        model.delivery_date,
+        model.sale_date,
+        model.payment_date,
+        model.id_customer,
+        _to_lines(model),
+        model.created_at,
+        model.updated_at,
+        model.deleted_at,
+        model.is_deleted,
     )
 
 
 def _address(address: CustomerSummaryModel | CompanySummaryModel) -> AddressSummary:
     return AddressSummary(
-        street=address.address_street, number=address.address_number,
-        complement=address.address_complement, neighborhood=address.address_neighborhood,
-        district=address.address_district, city=address.address_city,
-        country=address.address_country, zip_code=address.address_zip_code,
-        latitude=address.address_latitude, longitude=address.address_longitude,
+        street=address.address_street,
+        number=address.address_number,
+        complement=address.address_complement,
+        neighborhood=address.address_neighborhood,
+        district=address.address_district,
+        city=address.address_city,
+        country=address.address_country,
+        zip_code=address.address_zip_code,
+        latitude=address.address_latitude,
+        longitude=address.address_longitude,
     )
 
 
@@ -94,10 +116,16 @@ def _customer_summary(model: CustomerSummaryModel | None) -> CustomerSummary | N
     if model is None:
         return None
     return CustomerSummary(
-        id=model.id, name=model.name, doc_id=model.doc_id, email=model.email,
-        description=model.description, phone_number=model.phone_number,
+        id=model.id,
+        name=model.name,
+        doc_id=model.doc_id,
+        email=model.email,
+        description=model.description,
+        phone_number=model.phone_number,
         customer_address=_address(model),
-        created_at=model.created_at, updated_at=model.updated_at, deleted_at=model.deleted_at,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+        deleted_at=model.deleted_at,
     )
 
 
@@ -107,7 +135,8 @@ def _product_summary(model: Any) -> ProductSummary | None:
     category: CategorySummary | None = None
     if model.category_rel is not None:
         category = CategorySummary(
-            id=model.category_rel.id, name=model.category_rel.name,
+            id=model.category_rel.id,
+            name=model.category_rel.name,
             description=model.category_rel.description,
             short_description=model.category_rel.short_description,
             created_at=model.category_rel.created_at,
@@ -117,8 +146,10 @@ def _product_summary(model: Any) -> ProductSummary | None:
     company: CompanySummary | None = None
     if model.company_rel is not None:
         company = CompanySummary(
-            id=model.company_rel.id, name=model.company_rel.name,
-            doc_id=model.company_rel.doc_id, email=model.company_rel.email,
+            id=model.company_rel.id,
+            name=model.company_rel.name,
+            doc_id=model.company_rel.doc_id,
+            email=model.company_rel.email,
             description=model.company_rel.description,
             phone_number=model.company_rel.phone_number,
             company_address=_address(model.company_rel),
@@ -127,13 +158,32 @@ def _product_summary(model: Any) -> ProductSummary | None:
             deleted_at=model.company_rel.deleted_at,
         )
     return ProductSummary(
-        id=model.id, name=model.name, description=model.description,
-        short_description=model.short_description, image=model.image,
-        price=model.price, weight=model.weight, height=model.height,
-        length=model.length, id_category=model.id_category, id_company=model.id_company,
-        created_at=model.created_at, updated_at=model.updated_at, deleted_at=model.deleted_at,
-        category=category, company=company,
+        id=model.id,
+        name=model.name,
+        description=model.description,
+        short_description=model.short_description,
+        image=model.image,
+        price=model.price,
+        weight=model.weight,
+        height=model.height,
+        length=model.length,
+        id_category=model.id_category,
+        id_company=model.id_company,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+        deleted_at=model.deleted_at,
+        category=category,
+        company=company,
     )
+
+
+def _line_products(model: SaleModel) -> list[ProductSummary]:
+    # FK IdProduct é NOT NULL: a linha sempre tem produto (o filtro é defensivo).
+    return [
+        summary
+        for line in model.sale_products
+        if (summary := _product_summary(line.product_rel)) is not None
+    ]
 
 
 class SqlSaleRepository(SaleRepository):
@@ -141,15 +191,25 @@ class SqlSaleRepository(SaleRepository):
         self._session = session
 
     async def save(self, sale: Sale) -> None:
+        # A validação de domínio garante datas não nulas nas vendas persistidas.
+        assert sale.delivery_date is not None  # SaleValidation
+        assert sale.payment_date is not None  # SaleValidation
         model = await self._session.get(SaleModel, sale.id)
         if model is None:
             model = SaleModel(
-                id=sale.id, quantity=sale.quantity, total_price=sale.total_price,
-                total_tax=sale.total_tax, sale_type=int(sale.sale_type),
-                payment_type=int(sale.payment_type), delivery_date=sale.delivery_date,
-                sale_date=sale.sale_date, payment_date=sale.payment_date,
-                id_customer=sale.id_customer, created_at=sale.created_at,
-                updated_at=sale.updated_at, deleted_at=sale.deleted_at,
+                id=sale.id,
+                quantity=sale.quantity,
+                total_price=sale.total_price,
+                total_tax=sale.total_tax,
+                sale_type=int(sale.sale_type),
+                payment_type=int(sale.payment_type),
+                delivery_date=sale.delivery_date,
+                sale_date=sale.sale_date,
+                payment_date=sale.payment_date,
+                id_customer=sale.id_customer,
+                created_at=sale.created_at,
+                updated_at=sale.updated_at,
+                deleted_at=sale.deleted_at,
                 is_deleted=sale.is_deleted,
             )
             model.sale_products = [self._line_model(line, sale.id) for line in sale.sale_products]
@@ -186,7 +246,7 @@ class SqlSaleRepository(SaleRepository):
         return Detailed(
             entity=_to_domain(model),
             customer=_customer_summary(model.customer_rel),
-            products=[_product_summary(line.product_rel) for line in model.sale_products],
+            products=_line_products(model),
         )
 
     async def search(self, criteria: SaleCriteria) -> SearchResult[Detailed[Sale]]:
@@ -263,14 +323,19 @@ class SqlSaleRepository(SaleRepository):
         return Detailed(
             entity=_to_domain(model),
             customer=_customer_summary(model.customer_rel),
-            products=[_product_summary(line.product_rel) for line in model.sale_products],
+            products=_line_products(model),
         )
 
     @staticmethod
     def _line_model(line: SaleProduct, sale_id: UUID) -> SaleProductModel:
         line.id_sale = sale_id
         return SaleProductModel(
-            id=line.id, quantity=line.quantity, id_product=line.id_product,
-            id_sale=sale_id, created_at=line.created_at, updated_at=line.updated_at,
-            deleted_at=line.deleted_at, is_deleted=line.is_deleted,
+            id=line.id,
+            quantity=line.quantity,
+            id_product=line.id_product,
+            id_sale=sale_id,
+            created_at=line.created_at,
+            updated_at=line.updated_at,
+            deleted_at=line.deleted_at,
+            is_deleted=line.is_deleted,
         )

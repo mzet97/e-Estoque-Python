@@ -45,21 +45,19 @@ class ProductModel(ProductBase):
     length: Mapped[Decimal] = mapped_column("Length", Numeric)
     image: Mapped[str] = mapped_column("Image", String(5000))
     id_category: Mapped[uuid.UUID] = mapped_column(
-        "IdCategory", Uuid(), ForeignKey('"Categories"."Id"')
+        "IdCategory", Uuid(), ForeignKey("Categories.Id")
     )
-    id_company: Mapped[uuid.UUID] = mapped_column(
-        "IdCompany", Uuid(), ForeignKey('"Companies"."Id"')
-    )
+    id_company: Mapped[uuid.UUID] = mapped_column("IdCompany", Uuid(), ForeignKey("Companies.Id"))
     created_at: Mapped[datetime] = mapped_column("CreatedAt", DateTime)
     updated_at: Mapped[datetime | None] = mapped_column("UpdatedAt", DateTime)
     deleted_at: Mapped[datetime | None] = mapped_column("DeletedAt", DateTime)
     is_deleted: Mapped[bool] = mapped_column("IsDeleted", Boolean)
 
     # Includes do .NET (Category, Company, Company.CompanyAddress) sempre carregados.
-    category_rel: Mapped["CategoryModel"] = relationship(
+    category_rel: Mapped[CategoryModel] = relationship(
         primaryjoin="ProductModel.id_category == CategoryModel.id", lazy="joined", uselist=False
     )
-    company_rel: Mapped["CompanySummaryModel"] = relationship(
+    company_rel: Mapped[CompanySummaryModel] = relationship(
         primaryjoin="ProductModel.id_company == CompanySummaryModel.id",
         lazy="joined",
         uselist=False,

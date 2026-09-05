@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-
-T = TypeVar("T")
 
 
 @dataclass(frozen=True, slots=True)
-class SearchResult(Generic[T]):
+class SearchResult[T]:
     data: list[T]
     row_count: int
     page: int

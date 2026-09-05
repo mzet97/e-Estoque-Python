@@ -66,9 +66,7 @@ class Tax(Entity):
         self.id_category = id_category
 
     @classmethod
-    def create(
-        cls, name: str, description: str, percentage: Decimal, id_category: UUID
-    ) -> "Tax":
+    def create(cls, name: str, description: str, percentage: Decimal, id_category: UUID) -> Tax:
         tax = cls(uuid4(), name, description, percentage, id_category, utcnow())
         tax.register_event(TaxCreated(tax.id, name, description, percentage, id_category))
         tax.validate()
@@ -86,17 +84,22 @@ class Tax(Entity):
         updated_at: datetime | None,
         deleted_at: datetime | None,
         is_deleted: bool,
-    ) -> "Tax":
+    ) -> Tax:
         tax = cls(
-            id, name, description, percentage, id_category,
-            created_at, updated_at, deleted_at, is_deleted,
+            id,
+            name,
+            description,
+            percentage,
+            id_category,
+            created_at,
+            updated_at,
+            deleted_at,
+            is_deleted,
         )
         tax.validate()
         return tax
 
-    def update(
-        self, name: str, description: str, percentage: Decimal, id_category: UUID
-    ) -> None:
+    def update(self, name: str, description: str, percentage: Decimal, id_category: UUID) -> None:
         self.name = name
         self.description = description
         self.percentage = percentage

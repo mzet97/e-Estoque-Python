@@ -8,7 +8,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from e_estoque.product.domain.product import (
@@ -25,9 +24,9 @@ from e_estoque.shared.application.handlers_support import (
 )
 from e_estoque.shared.application.message_bus import NOTIFICATION_EXCHANGE, MessageBus
 from e_estoque.shared.application.read_models import Detailed
+from e_estoque.shared.application.unit_of_work import UnitOfWork
 from e_estoque.shared.domain.errors import NotFoundError
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.db import UnitOfWork
 
 EXCHANGE = "product-service"
 
@@ -71,25 +70,25 @@ class SearchProductQuery:
     name: str = ""
     description: str = ""
     short_description: str = ""
-    price: Optional[Decimal] = None
-    weight: Optional[Decimal] = None
-    height: Optional[Decimal] = None
-    length: Optional[Decimal] = None
-    id_category: Optional[UUID] = None
-    id_company: Optional[UUID] = None
-    id: Optional[UUID] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-    order: Optional[str] = None
+    price: Decimal | None = None
+    weight: Decimal | None = None
+    height: Decimal | None = None
+    length: Decimal | None = None
+    id_category: UUID | None = None
+    id_company: UUID | None = None
+    id: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    deleted_at: datetime | None = None
+    order: str | None = None
     page_index: int = 1
     page_size: int = 10
 
 
 @dataclass(frozen=True, slots=True)
 class GridifyProductQuery:
-    filter: Optional[str] = None
-    order_by: Optional[str] = None
+    filter: str | None = None
+    order_by: str | None = None
     page: int = 1
     page_size: int = 10
 
@@ -111,9 +110,16 @@ class CreateProductHandler:
 
     async def handle(self, command: CreateProductCommand) -> UUID:
         product = Product.create(
-            command.name, command.description, command.short_description,
-            command.price, command.weight, command.height, command.length,
-            command.image, command.id_category, command.id_company,
+            command.name,
+            command.description,
+            command.short_description,
+            command.price,
+            command.weight,
+            command.height,
+            command.length,
+            command.image,
+            command.id_category,
+            command.id_company,
         )
         await ensure_valid(product, self._bus, "Validate Product has error", NOTIFICATION_EXCHANGE)
         if not await self._category_reader.exists(command.id_category):
@@ -164,9 +170,16 @@ class UpdateProductHandler:
             )
             raise NotFoundError("Company not found")
         product.update(
-            command.name, command.description, command.short_description,
-            command.price, command.weight, command.height, command.length,
-            command.image, command.id_category, command.id_company,
+            command.name,
+            command.description,
+            command.short_description,
+            command.price,
+            command.weight,
+            command.height,
+            command.length,
+            command.image,
+            command.id_category,
+            command.id_company,
         )
         await ensure_valid(product, self._bus, "Validate Product has error", NOTIFICATION_EXCHANGE)
         await self._repository.save(product)
@@ -211,14 +224,22 @@ class SearchProductHandler:
 
     async def handle(self, query: SearchProductQuery) -> SearchResult[Detailed[Product]]:
         criteria = ProductCriteria(
-            name=query.name, description=query.description,
+            name=query.name,
+            description=query.description,
             short_description=query.short_description,
-            price=query.price, weight=query.weight, height=query.height,
-            length=query.length, id_category=query.id_category,
-            id_company=query.id_company, id=query.id,
-            created_at=query.created_at, updated_at=query.updated_at,
+            price=query.price,
+            weight=query.weight,
+            height=query.height,
+            length=query.length,
+            id_category=query.id_category,
+            id_company=query.id_company,
+            id=query.id,
+            created_at=query.created_at,
+            updated_at=query.updated_at,
             deleted_at=query.deleted_at,
-            order=query.order, page=query.page_index, size=query.page_size,
+            order=query.order,
+            page=query.page_index,
+            size=query.page_size,
         )
         return await self._repository.search(criteria)
 

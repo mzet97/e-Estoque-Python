@@ -58,8 +58,16 @@ class ProductUpdated(DomainEvent):
 # ---- Entity ----
 class Product(Entity):
     __slots__ = (
-        "name", "description", "short_description", "price", "weight",
-        "height", "length", "image", "id_category", "id_company",
+        "name",
+        "description",
+        "short_description",
+        "price",
+        "weight",
+        "height",
+        "length",
+        "image",
+        "id_category",
+        "id_company",
     )
 
     def __init__(
@@ -105,15 +113,33 @@ class Product(Entity):
         image: str,
         id_category: UUID,
         id_company: UUID,
-    ) -> "Product":
+    ) -> Product:
         product = cls(
-            uuid4(), name, description, short_description, price, weight,
-            height, length, image, id_category, id_company, utcnow(),
+            uuid4(),
+            name,
+            description,
+            short_description,
+            price,
+            weight,
+            height,
+            length,
+            image,
+            id_category,
+            id_company,
+            utcnow(),
         )
         product.register_event(
             ProductCreated(
-                product.id, name, description, short_description, price, weight,
-                height, length, id_category, id_company,
+                product.id,
+                name,
+                description,
+                short_description,
+                price,
+                weight,
+                height,
+                length,
+                id_category,
+                id_company,
             )
         )
         product.validate()
@@ -137,11 +163,23 @@ class Product(Entity):
         updated_at: datetime | None,
         deleted_at: datetime | None,
         is_deleted: bool,
-    ) -> "Product":
+    ) -> Product:
         product = cls(
-            id, name, description, short_description, price, weight, height,
-            length, image, id_category, id_company, created_at,
-            updated_at, deleted_at, is_deleted,
+            id,
+            name,
+            description,
+            short_description,
+            price,
+            weight,
+            height,
+            length,
+            image,
+            id_category,
+            id_company,
+            created_at,
+            updated_at,
+            deleted_at,
+            is_deleted,
         )
         product.validate()
         return product
@@ -165,8 +203,16 @@ class Product(Entity):
         self.touch(utcnow())
         self.register_event(
             ProductUpdated(
-                self.id, name, description, short_description, price, weight,
-                height, length, id_category, id_company,
+                self.id,
+                name,
+                description,
+                short_description,
+                price,
+                weight,
+                height,
+                length,
+                id_category,
+                id_company,
             )
         )
         self.validate()

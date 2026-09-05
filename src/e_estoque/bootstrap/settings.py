@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     server_port: int = 8000
 
-    database_url: SecretStr = SecretStr("postgresql+asyncpg://postgres:postgres@localhost:15432/e-estoque-py")
+    database_url: SecretStr = SecretStr(
+        "postgresql+asyncpg://postgres:postgres@localhost:15432/e-estoque-py"
+    )
     db_echo: bool = False
 
     redis_host: str = "localhost"

@@ -27,6 +27,7 @@ dev = [
     "mypy>=1.19",
     "testcontainers[postgres]>=4.13",
     "greenlet>=3.2",
+    "aiosqlite>=0.22.1",
 ]
 
 [build-system]
@@ -54,6 +55,18 @@ python_version = "3.14"
 strict = true
 mypy_path = "src"
 plugins = []
+
+[[tool.mypy.overrides]]
+module = ["opentelemetry.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["src/e_estoque"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = ["pragma: no cover"]
 
 [tool.pytest.ini_options.env]
 EESTOQUE_SETTINGS_SKIP = "1"

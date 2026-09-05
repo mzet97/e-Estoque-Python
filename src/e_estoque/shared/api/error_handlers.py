@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
-from fastapi import Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from e_estoque.shared.domain.errors import (
@@ -28,10 +29,10 @@ _STATUS: dict[type[Exception], int] = {
 }
 
 
-def install_exception_handlers(app: object) -> None:
-    """Registra handlers FastAPI (app.add_exception_handler por tipo)."""
+def install_exception_handlers(app: FastAPI) -> None:
+    """Registra handlers FastAPI (add_exception_handler por tipo)."""
 
-    def make(status: int) -> object:
+    def make(status: int) -> Callable[[Request, Exception], JSONResponse]:
         def handler(_request: Request, exc: Exception) -> JSONResponse:
             return JSONResponse(
                 status_code=status,
@@ -40,12 +41,11 @@ def install_exception_handlers(app: object) -> None:
 
         return handler
 
-    add = getattr(app, "add_exception_handler")
     for exc_type, status in _STATUS.items():
-        add(exc_type, make(status))
+        app.add_exception_handler(exc_type, make(status))
 
     def unhandled(_request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled exception")
         return JSONResponse(status_code=500, content={"error": str(exc) or "Error"})
 
-    add(Exception, unhandled)
+    app.add_exception_handler(Exception, unhandled)

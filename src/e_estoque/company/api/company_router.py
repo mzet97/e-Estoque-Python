@@ -31,13 +31,15 @@ from e_estoque.shared.api.schemas import (
     paged_search_bounds,
     paged_view,
 )
-from e_estoque.shared.api.security import CurrentUser, require_create
+from e_estoque.shared.api.security import CurrentUser, current_user, require_create
 from e_estoque.shared.api.views import CompanyView
 from e_estoque.shared.application.address_input import AddressInput
 from e_estoque.shared.application.message_bus import MessageBus
 from e_estoque.shared.infrastructure.db import UnitOfWork, open_uow
 
-router = APIRouter(prefix="/api/Companies", tags=["Companies"])
+router = APIRouter(
+    prefix="/api/Companies", tags=["Companies"], dependencies=[Depends(current_user)]
+)
 
 
 # ---- dependências ----
@@ -144,10 +146,18 @@ async def search(
     page, size = paged_search_bounds(page_index, page_size)
     result = await handler.handle(
         SearchCompanyQuery(
-            name=name, doc_id=doc_id, email=email, description=description,
-            phone_number=phone_number, id=id, created_at=created_at,
-            updated_at=updated_at, deleted_at=deleted_at,
-            order=order, page_index=page, page_size=size,
+            name=name,
+            doc_id=doc_id,
+            email=email,
+            description=description,
+            phone_number=phone_number,
+            id=id,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            order=order,
+            page_index=page,
+            page_size=size,
         )
     )
     return BaseResultList[CompanyView](
@@ -179,9 +189,7 @@ async def get_by_id(
     handler: Annotated[GetByIdCompanyHandler, Depends(_get_handler)],
 ) -> BaseResult[CompanyView]:
     company = await handler.handle(company_id)
-    return BaseResult[CompanyView](
-        data=CompanyView.model_validate(company, from_attributes=True)
-    )
+    return BaseResult[CompanyView](data=CompanyView.model_validate(company, from_attributes=True))
 
 
 @router.post("")
@@ -191,11 +199,9 @@ async def create(
     get_handler: Annotated[GetByIdCompanyHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[CompanyView]:
-    company_id = await create_handler.handle(_to_command(payload))
+    company_id = await create_handler.handle(_to_create(payload))
     company = await get_handler.handle(company_id)
-    return BaseResult[CompanyView](
-        data=CompanyView.model_validate(company, from_attributes=True)
-    )
+    return BaseResult[CompanyView](data=CompanyView.model_validate(company, from_attributes=True))
 
 
 @router.put("/{company_id}")
@@ -206,11 +212,9 @@ async def update(
     get_handler: Annotated[GetByIdCompanyHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[CompanyView]:
-    await update_handler.handle(_to_command(payload, company_id))
+    await update_handler.handle(_to_update(company_id, payload))
     company = await get_handler.handle(company_id)
-    return BaseResult[CompanyView](
-        data=CompanyView.model_validate(company, from_attributes=True)
-    )
+    return BaseResult[CompanyView](data=CompanyView.model_validate(company, from_attributes=True))
 
 
 @router.delete("/{company_id}")
@@ -223,18 +227,28 @@ async def delete(
     return {}
 
 
-def _to_command(
-    payload: CreateCompanyRequest, company_id: UUID | None = None
-) -> CreateCompanyCommand | UpdateCompanyCommand:
-    address = AddressInput(**payload.company_address.model_dump(by_alias=False))
-    if company_id is None:
-        return CreateCompanyCommand(
-            name=payload.name, doc_id=payload.doc_id, email=payload.email,
-            description=payload.description, phone_number=payload.phone_number,
-            company_address=address,
-        )
+def _address_of(payload: CreateCompanyRequest) -> AddressInput:
+    return AddressInput(**payload.company_address.model_dump(by_alias=False))
+
+
+def _to_create(payload: CreateCompanyRequest) -> CreateCompanyCommand:
+    return CreateCompanyCommand(
+        name=payload.name,
+        doc_id=payload.doc_id,
+        email=payload.email,
+        description=payload.description,
+        phone_number=payload.phone_number,
+        company_address=_address_of(payload),
+    )
+
+
+def _to_update(company_id: UUID, payload: UpdateCompanyRequest) -> UpdateCompanyCommand:
     return UpdateCompanyCommand(
-        id=company_id, name=payload.name, doc_id=payload.doc_id, email=payload.email,
-        description=payload.description, phone_number=payload.phone_number,
-        company_address=address,
+        id=company_id,
+        name=payload.name,
+        doc_id=payload.doc_id,
+        email=payload.email,
+        description=payload.description,
+        phone_number=payload.phone_number,
+        company_address=_address_of(payload),
     )

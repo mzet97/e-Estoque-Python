@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import Generic, TypeVar
 from uuid import UUID
 
 
@@ -86,11 +85,8 @@ class ProductSummary:
     company: CompanySummary | None = None
 
 
-T = TypeVar("T")
-
-
 @dataclass(frozen=True, slots=True)
-class Detailed(Generic[T]):
+class Detailed[T]:
     """Entity + projeções relacionadas carregadas (equivalente aos Include .NET)."""
 
     entity: T

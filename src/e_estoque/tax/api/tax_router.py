@@ -18,7 +18,7 @@ from e_estoque.shared.api.schemas import (
     paged_search_bounds,
     paged_view,
 )
-from e_estoque.shared.api.security import CurrentUser, require_create
+from e_estoque.shared.api.security import CurrentUser, current_user, require_create
 from e_estoque.shared.api.views import tax_view
 from e_estoque.shared.application.message_bus import MessageBus
 from e_estoque.shared.infrastructure.db import UnitOfWork, open_uow
@@ -38,7 +38,7 @@ from e_estoque.tax.application.tax_handlers import (
 from e_estoque.tax.domain.tax import CategoryReader, TaxRepository
 from e_estoque.tax.infrastructure.tax_repository import SqlTaxRepository
 
-router = APIRouter(prefix="/api/Taxs", tags=["Taxs"])
+router = APIRouter(prefix="/api/Taxs", tags=["Taxs"], dependencies=[Depends(current_user)])
 
 
 def _repository(uow: Annotated[UnitOfWork, Depends(open_uow)]) -> TaxRepository:
@@ -129,14 +129,19 @@ async def search(
     page, size = paged_search_bounds(page_index, page_size)
     result = await handler.handle(
         SearchTaxQuery(
-            name=name, description=description, percentage=percentage,
-            id_category=id_category, created_at=created_at, updated_at=updated_at,
-            deleted_at=deleted_at, order=order, page_index=page, page_size=size,
+            name=name,
+            description=description,
+            percentage=percentage,
+            id_category=id_category,
+            created_at=created_at,
+            updated_at=updated_at,
+            deleted_at=deleted_at,
+            order=order,
+            page_index=page,
+            page_size=size,
         )
     )
-    return BaseResultList(
-        data=[tax_view(d) for d in result.data], paged_result=paged_view(result)
-    )
+    return BaseResultList(data=[tax_view(d) for d in result.data], paged_result=paged_view(result))
 
 
 @router.get("/gridify")
@@ -150,9 +155,7 @@ async def search_gridify(
     result = await handler.handle(
         GridifyTaxQuery(filter=filter, order_by=order_by, page=page, page_size=page_size)
     )
-    return BaseResultList(
-        data=[tax_view(d) for d in result.data], paged_result=paged_view(result)
-    )
+    return BaseResultList(data=[tax_view(d) for d in result.data], paged_result=paged_view(result))
 
 
 @router.get("/{tax_id}")
@@ -171,7 +174,7 @@ async def create(
     get_handler: Annotated[GetByIdTaxHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    tax_id = await create_handler.handle(_to_command(payload))
+    tax_id = await create_handler.handle(_to_create(payload))
     detailed = await get_handler.handle(tax_id)
     return BaseResult(data=tax_view(detailed))
 
@@ -184,7 +187,7 @@ async def update(
     get_handler: Annotated[GetByIdTaxHandler, Depends(_get_handler)],
     _user: Annotated[CurrentUser, Depends(require_create)],
 ) -> BaseResult[object]:
-    await update_handler.handle(_to_command(payload, tax_id))
+    await update_handler.handle(_to_update(tax_id, payload))
     detailed = await get_handler.handle(tax_id)
     return BaseResult(data=tax_view(detailed))
 
@@ -199,10 +202,9 @@ async def delete(
     return {}
 
 
-def _to_command(
-    payload: CreateTaxRequest, tax_id: UUID | None = None
-) -> CreateTaxCommand | UpdateTaxCommand:
-    data = payload.model_dump()
-    if tax_id is None:
-        return CreateTaxCommand(**data)
-    return UpdateTaxCommand(id=tax_id, **data)
+def _to_create(payload: CreateTaxRequest) -> CreateTaxCommand:
+    return CreateTaxCommand(**payload.model_dump())
+
+
+def _to_update(tax_id: UUID, payload: UpdateTaxRequest) -> UpdateTaxCommand:
+    return UpdateTaxCommand(id=tax_id, **payload.model_dump())

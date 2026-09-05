@@ -56,10 +56,21 @@ FILTER_FIELDS = {
 
 def _to_domain(model: ProductModel) -> Product:
     return Product.rehydrate(
-        model.id, model.name, model.description, model.short_description,
-        model.price, model.weight, model.height, model.length, model.image,
-        model.id_category, model.id_company,
-        model.created_at, model.updated_at, model.deleted_at, model.is_deleted,
+        model.id,
+        model.name,
+        model.description,
+        model.short_description,
+        model.price,
+        model.weight,
+        model.height,
+        model.length,
+        model.image,
+        model.id_category,
+        model.id_company,
+        model.created_at,
+        model.updated_at,
+        model.deleted_at,
+        model.is_deleted,
     )
 
 
@@ -67,9 +78,13 @@ def _category_summary(model: CategoryModel | None) -> CategorySummary | None:
     if model is None:
         return None
     return CategorySummary(
-        id=model.id, name=model.name, description=model.description,
+        id=model.id,
+        name=model.name,
+        description=model.description,
         short_description=model.short_description,
-        created_at=model.created_at, updated_at=model.updated_at, deleted_at=model.deleted_at,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+        deleted_at=model.deleted_at,
     )
 
 
@@ -77,16 +92,27 @@ def _company_summary(model: CompanySummaryModel | None) -> CompanySummary | None
     if model is None:
         return None
     return CompanySummary(
-        id=model.id, name=model.name, doc_id=model.doc_id, email=model.email,
-        description=model.description, phone_number=model.phone_number,
+        id=model.id,
+        name=model.name,
+        doc_id=model.doc_id,
+        email=model.email,
+        description=model.description,
+        phone_number=model.phone_number,
         company_address=AddressSummary(
-            street=model.address_street, number=model.address_number,
-            complement=model.address_complement, neighborhood=model.address_neighborhood,
-            district=model.address_district, city=model.address_city,
-            country=model.address_country, zip_code=model.address_zip_code,
-            latitude=model.address_latitude, longitude=model.address_longitude,
+            street=model.address_street,
+            number=model.address_number,
+            complement=model.address_complement,
+            neighborhood=model.address_neighborhood,
+            district=model.address_district,
+            city=model.address_city,
+            country=model.address_country,
+            zip_code=model.address_zip_code,
+            latitude=model.address_latitude,
+            longitude=model.address_longitude,
         ),
-        created_at=model.created_at, updated_at=model.updated_at, deleted_at=model.deleted_at,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+        deleted_at=model.deleted_at,
     )
 
 
@@ -114,12 +140,20 @@ class SqlProductRepository(ProductRepository):
         if model is None:
             self._session.add(
                 ProductModel(
-                    id=product.id, name=product.name, description=product.description,
-                    short_description=product.short_description, price=product.price,
-                    weight=product.weight, height=product.height, length=product.length,
-                    image=product.image, id_category=product.id_category,
-                    id_company=product.id_company, created_at=product.created_at,
-                    updated_at=product.updated_at, deleted_at=product.deleted_at,
+                    id=product.id,
+                    name=product.name,
+                    description=product.description,
+                    short_description=product.short_description,
+                    price=product.price,
+                    weight=product.weight,
+                    height=product.height,
+                    length=product.length,
+                    image=product.image,
+                    id_category=product.id_category,
+                    id_company=product.id_company,
+                    created_at=product.created_at,
+                    updated_at=product.updated_at,
+                    deleted_at=product.deleted_at,
                     is_deleted=product.is_deleted,
                 )
             )
@@ -182,7 +216,9 @@ class SqlProductRepository(ProductRepository):
             stmt = stmt.where(model.deleted_at == criteria.deleted_at)
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(criteria.order, model, FILTER_FIELDS))
-        models = [row[0] for row in await page_rows(self._session, stmt, criteria.page, criteria.size)]
+        models = [
+            row[0] for row in await page_rows(self._session, stmt, criteria.page, criteria.size)
+        ]
         return SearchResult(
             data=[_to_detailed(m) for m in models],
             row_count=total,
@@ -200,7 +236,9 @@ class SqlProductRepository(ProductRepository):
         total = await count_rows(self._session, stmt)
         stmt = stmt.order_by(*order_columns(order_text, ProductModel, FILTER_FIELDS))
         models = [row[0] for row in await page_rows(self._session, stmt, page, size)]
-        return SearchResult(data=[_to_detailed(m) for m in models], row_count=total, page=page, size=size)
+        return SearchResult(
+            data=[_to_detailed(m) for m in models], row_count=total, page=page, size=size
+        )
 
     async def delete_hard(self, product_id: UUID) -> None:
         model = await self._session.get(ProductModel, product_id)

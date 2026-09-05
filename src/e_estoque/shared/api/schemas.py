@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
-
 from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 
 from e_estoque.shared.domain.search import SearchResult
-
-T = TypeVar("T")
 
 
 class _Camel(BaseModel):
@@ -41,7 +37,7 @@ class PagedResult(_Camel):
         return min(self.current_page * self.page_size, self.row_count)
 
     @classmethod
-    def create(cls, current_page: int, page_size: int, row_count: int) -> "PagedResult":
+    def create(cls, current_page: int, page_size: int, row_count: int) -> PagedResult:
         safe_size = max(page_size, 1)
         page_count = -(-row_count // safe_size)
         return cls(
@@ -52,16 +48,20 @@ class PagedResult(_Camel):
         )
 
 
-class BaseResult(_Camel, Generic[T]):
-    """Envelope de item único: {"data": T, "success": true, "message": ""}."""
+class BaseResult[T](BaseModel):
+    """Envelope de item único: {"data": T, "success": true, "message": ""} (camelCase)."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     data: T | None = None
     success: bool = True
     message: str = ""
 
 
-class BaseResultList(_Camel, Generic[T]):
+class BaseResultList[T](BaseModel):
     """Envelope de listas: {"data": [...], "pagedResult": {...}, ...}."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     data: list[T] = []
     paged_result: PagedResult | None = None
@@ -69,7 +69,7 @@ class BaseResultList(_Camel, Generic[T]):
     message: str = ""
 
 
-def paged_view(result: SearchResult[T]) -> PagedResult:
+def paged_view[T](result: SearchResult[T]) -> PagedResult:
     """PagedResult do contrato a partir de um SearchResult de repositório."""
     return PagedResult.create(result.page, result.size, result.row_count)
 

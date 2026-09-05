@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import Uuid
-from decimal import Decimal
 
 
 class InventoryBase(DeclarativeBase):
@@ -25,9 +25,7 @@ class InventoryModel(InventoryBase):
     id: Mapped[uuid.UUID] = mapped_column("Id", Uuid(), primary_key=True)
     quantity: Mapped[int] = mapped_column("Quantity", Integer)
     date_order: Mapped[str] = mapped_column("DateOrder", String(80))
-    id_product: Mapped[uuid.UUID] = mapped_column(
-        "IdProduct", Uuid(), ForeignKey('"Products"."Id"')
-    )
+    id_product: Mapped[uuid.UUID] = mapped_column("IdProduct", Uuid(), ForeignKey("Products.Id"))
     created_at: Mapped[datetime] = mapped_column("CreatedAt", DateTime)
     updated_at: Mapped[datetime | None] = mapped_column("UpdatedAt", DateTime)
     deleted_at: Mapped[datetime | None] = mapped_column("DeletedAt", DateTime)

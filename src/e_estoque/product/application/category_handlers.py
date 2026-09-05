@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
-from typing import Optional, Union
 from uuid import UUID
 
 from e_estoque.product.domain.category import Category, CategoryCriteria, CategoryRepository
@@ -15,8 +13,8 @@ from e_estoque.shared.application.handlers_support import (
     publish_events,
 )
 from e_estoque.shared.application.message_bus import NOTIFICATION_EXCHANGE, MessageBus
+from e_estoque.shared.application.unit_of_work import UnitOfWork
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.db import UnitOfWork
 
 EXCHANGE = "category-service"
 
@@ -46,36 +44,34 @@ class SearchCategoryQuery:
     name: str = ""
     description: str = ""
     short_description: str = ""
-    id: Optional[UUID] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-    order: Optional[str] = None
+    id: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    deleted_at: datetime | None = None
+    order: str | None = None
     page_index: int = 1
     page_size: int = 10
 
 
 @dataclass(frozen=True, slots=True)
 class GridifyCategoryQuery:
-    filter: Optional[str] = None
-    order_by: Optional[str] = None
+    filter: str | None = None
+    order_by: str | None = None
     page: int = 1
     page_size: int = 10
 
 
 class CreateCategoryHandler:
-    def __init__(
-        self, repository: CategoryRepository, uow: UnitOfWork, bus: MessageBus
-    ) -> None:
+    def __init__(self, repository: CategoryRepository, uow: UnitOfWork, bus: MessageBus) -> None:
         self._repository = repository
         self._uow = uow
         self._bus = bus
 
     async def handle(self, command: CreateCategoryCommand) -> UUID:
-        category = Category.create(
-            command.name, command.description, command.short_description
+        category = Category.create(command.name, command.description, command.short_description)
+        await ensure_valid(
+            category, self._bus, "Validate Category has error", NOTIFICATION_EXCHANGE
         )
-        await ensure_valid(category, self._bus, "Validate Category has error", NOTIFICATION_EXCHANGE)
         await self._repository.save(category)
         await self._uow.commit()
         await publish_events(category, self._bus, EXCHANGE)
@@ -83,9 +79,7 @@ class CreateCategoryHandler:
 
 
 class UpdateCategoryHandler:
-    def __init__(
-        self, repository: CategoryRepository, uow: UnitOfWork, bus: MessageBus
-    ) -> None:
+    def __init__(self, repository: CategoryRepository, uow: UnitOfWork, bus: MessageBus) -> None:
         self._repository = repository
         self._uow = uow
         self._bus = bus
@@ -97,7 +91,9 @@ class UpdateCategoryHandler:
         )
         assert category is not None  # garantido por ensure_found
         category.update(command.name, command.description, command.short_description)
-        await ensure_valid(category, self._bus, "Validate Category has error", NOTIFICATION_EXCHANGE)
+        await ensure_valid(
+            category, self._bus, "Validate Category has error", NOTIFICATION_EXCHANGE
+        )
         await self._repository.save(category)
         await self._uow.commit()
         await publish_events(category, self._bus, EXCHANGE)
@@ -105,9 +101,7 @@ class UpdateCategoryHandler:
 
 
 class DeleteCategoryHandler:
-    def __init__(
-        self, repository: CategoryRepository, uow: UnitOfWork, bus: MessageBus
-    ) -> None:
+    def __init__(self, repository: CategoryRepository, uow: UnitOfWork, bus: MessageBus) -> None:
         self._repository = repository
         self._uow = uow
         self._bus = bus

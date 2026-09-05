@@ -69,9 +69,9 @@ def positive(errors: list[str], value: int | None, prop: str) -> None:
 
 
 def positive_decimal(errors: list[str], value: Decimal | None, prop: str) -> None:
-    """'The {Prop} needs to be greater 0' — decimal (mensagem do Product)."""
+    """'The {Prop} need to be greater 0' — decimal (mensagem do ProductValidation)."""
     if value is not None and value <= 0:
-        errors.append(f"The {prop} needs to be greater 0")
+        errors.append(f"The {prop} need to be greater 0")
 
 
 def inclusive_range(

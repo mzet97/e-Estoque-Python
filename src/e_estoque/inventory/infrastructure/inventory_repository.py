@@ -75,9 +75,13 @@ def _category_summary(model: CategorySummaryModel | None) -> CategorySummary | N
     if model is None:
         return None
     return CategorySummary(
-        id=model.id, name=model.name, description=model.description,
+        id=model.id,
+        name=model.name,
+        description=model.description,
         short_description=model.short_description,
-        created_at=model.created_at, updated_at=model.updated_at, deleted_at=model.deleted_at,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+        deleted_at=model.deleted_at,
     )
 
 
@@ -85,16 +89,27 @@ def _company_summary(model: CompanySummaryModel | None) -> CompanySummary | None
     if model is None:
         return None
     return CompanySummary(
-        id=model.id, name=model.name, doc_id=model.doc_id, email=model.email,
-        description=model.description, phone_number=model.phone_number,
+        id=model.id,
+        name=model.name,
+        doc_id=model.doc_id,
+        email=model.email,
+        description=model.description,
+        phone_number=model.phone_number,
         company_address=AddressSummary(
-            street=model.address_street, number=model.address_number,
-            complement=model.address_complement, neighborhood=model.address_neighborhood,
-            district=model.address_district, city=model.address_city,
-            country=model.address_country, zip_code=model.address_zip_code,
-            latitude=model.address_latitude, longitude=model.address_longitude,
+            street=model.address_street,
+            number=model.address_number,
+            complement=model.address_complement,
+            neighborhood=model.address_neighborhood,
+            district=model.address_district,
+            city=model.address_city,
+            country=model.address_country,
+            zip_code=model.address_zip_code,
+            latitude=model.address_latitude,
+            longitude=model.address_longitude,
         ),
-        created_at=model.created_at, updated_at=model.updated_at, deleted_at=model.deleted_at,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+        deleted_at=model.deleted_at,
     )
 
 
@@ -106,12 +121,19 @@ def _product_summary(
     if product is None:
         return None
     return ProductSummary(
-        id=product.id, name=product.name, description=product.description,
-        short_description=product.short_description, image=product.image,
-        price=product.price, weight=product.weight, height=product.height,
-        length=product.length, id_category=product.id_category,
+        id=product.id,
+        name=product.name,
+        description=product.description,
+        short_description=product.short_description,
+        image=product.image,
+        price=product.price,
+        weight=product.weight,
+        height=product.height,
+        length=product.length,
+        id_category=product.id_category,
         id_company=product.id_company,
-        created_at=product.created_at, updated_at=product.updated_at,
+        created_at=product.created_at,
+        updated_at=product.updated_at,
         deleted_at=product.deleted_at,
         category=_category_summary(category),
         company=_company_summary(company),
@@ -205,8 +227,12 @@ class SqlInventoryRepository(InventoryRepository):
                 CompanySummaryModel,
             )
             .outerjoin(ProductSummaryModel, InventoryModel.id_product == ProductSummaryModel.id)
-            .outerjoin(CategorySummaryModel, ProductSummaryModel.id_category == CategorySummaryModel.id)
-            .outerjoin(CompanySummaryModel, ProductSummaryModel.id_company == CompanySummaryModel.id)
+            .outerjoin(
+                CategorySummaryModel, ProductSummaryModel.id_category == CategorySummaryModel.id
+            )
+            .outerjoin(
+                CompanySummaryModel, ProductSummaryModel.id_company == CompanySummaryModel.id
+            )
         )
 
     async def _run_paged(

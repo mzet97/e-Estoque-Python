@@ -27,21 +27,19 @@ class SaleModel(SaleBase):
     delivery_date: Mapped[datetime] = mapped_column("DeliveryDate", DateTime)
     sale_date: Mapped[datetime] = mapped_column("SaleDate", DateTime)
     payment_date: Mapped[datetime] = mapped_column("PaymentDate", DateTime)
-    id_customer: Mapped[uuid.UUID] = mapped_column(
-        "IdCustomer", Uuid(), ForeignKey('"Customers"."Id"')
-    )
+    id_customer: Mapped[uuid.UUID] = mapped_column("IdCustomer", Uuid(), ForeignKey("Customers.Id"))
     created_at: Mapped[datetime] = mapped_column("CreatedAt", DateTime)
     updated_at: Mapped[datetime | None] = mapped_column("UpdatedAt", DateTime)
     deleted_at: Mapped[datetime | None] = mapped_column("DeletedAt", DateTime)
     is_deleted: Mapped[bool] = mapped_column("IsDeleted", Boolean)
 
     # Includes do .NET: Customer, SaleProduct, SaleProduct.Product
-    customer_rel: Mapped["CustomerSummaryModel"] = relationship(
+    customer_rel: Mapped[CustomerSummaryModel] = relationship(
         primaryjoin="SaleModel.id_customer == CustomerSummaryModel.id",
         lazy="selectin",
         uselist=False,
     )
-    sale_products: Mapped[list["SaleProductModel"]] = relationship(
+    sale_products: Mapped[list[SaleProductModel]] = relationship(
         primaryjoin="SaleModel.id == SaleProductModel.id_sale",
         lazy="selectin",
         cascade="save-update, merge, delete",
@@ -53,16 +51,14 @@ class SaleProductModel(SaleBase):
 
     id: Mapped[uuid.UUID] = mapped_column("Id", Uuid(), primary_key=True)
     quantity: Mapped[int] = mapped_column("Quantity", Integer)
-    id_product: Mapped[uuid.UUID] = mapped_column(
-        "IdProduct", Uuid(), ForeignKey('"Products"."Id"')
-    )
-    id_sale: Mapped[uuid.UUID] = mapped_column("IdSale", Uuid(), ForeignKey('"Sales"."Id"'))
+    id_product: Mapped[uuid.UUID] = mapped_column("IdProduct", Uuid(), ForeignKey("Products.Id"))
+    id_sale: Mapped[uuid.UUID] = mapped_column("IdSale", Uuid(), ForeignKey("Sales.Id"))
     created_at: Mapped[datetime] = mapped_column("CreatedAt", DateTime)
     updated_at: Mapped[datetime | None] = mapped_column("UpdatedAt", DateTime)
     deleted_at: Mapped[datetime | None] = mapped_column("DeletedAt", DateTime)
     is_deleted: Mapped[bool] = mapped_column("IsDeleted", Boolean)
 
-    product_rel: Mapped["ProductSummaryModel"] = relationship(
+    product_rel: Mapped[ProductSummaryModel] = relationship(
         primaryjoin="SaleProductModel.id_product == ProductSummaryModel.id",
         lazy="selectin",
         uselist=False,
@@ -119,13 +115,15 @@ class ProductSummaryModel(SaleBase):
     deleted_at: Mapped[datetime | None] = mapped_column("DeletedAt", DateTime)
     is_deleted: Mapped[bool] = mapped_column("IsDeleted", Boolean)
 
-    category_rel: Mapped["CategorySummaryModel | None"] = relationship(
-        primaryjoin="ProductSummaryModel.id_category == CategorySummaryModel.id",
+    category_rel: Mapped[CategorySummaryModel | None] = relationship(
+        primaryjoin="foreign(ProductSummaryModel.id_category) == CategorySummaryModel.id",
+        viewonly=True,
         lazy="selectin",
         uselist=False,
     )
-    company_rel: Mapped["CompanySummaryModel | None"] = relationship(
-        primaryjoin="ProductSummaryModel.id_company == CompanySummaryModel.id",
+    company_rel: Mapped[CompanySummaryModel | None] = relationship(
+        primaryjoin="foreign(ProductSummaryModel.id_company) == CompanySummaryModel.id",
+        viewonly=True,
         lazy="selectin",
         uselist=False,
     )

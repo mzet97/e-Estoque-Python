@@ -33,12 +33,12 @@ class Condition:
 
 @dataclass(frozen=True, slots=True)
 class And:
-    children: list["FilterNode"] = field(default_factory=list)
+    children: list[FilterNode] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
 class Or:
-    children: list["FilterNode"] = field(default_factory=list)
+    children: list[FilterNode] = field(default_factory=list)
 
 
 FilterNode = And | Or | Condition
@@ -133,7 +133,7 @@ def parse_odata_filter(filter_text: str | None) -> FilterNode | None:
         ands: list[FilterNode] = []
         for and_part in re.split(r"\band\b", or_part, flags=re.IGNORECASE):
             ands.append(_parse_odata_condition(and_part.strip()))
-        or_groups.append(ands[0] if len(ands) == 1 else Or(children=ands))
+        or_groups.append(ands[0] if len(ands) == 1 else And(children=ands))
     return or_groups[0] if len(or_groups) == 1 else Or(children=or_groups)
 
 
