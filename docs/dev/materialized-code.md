@@ -24,15 +24,17 @@ from e_estoque.product.domain.category import (
 from e_estoque.product.infrastructure.models import CategoryModel
 from e_estoque.shared.application.filtering import parse_gridify_filter
 from e_estoque.shared.domain.search import SearchResult
-from e_estoque.shared.infrastructure.sql_filtering import build_filter
+from e_estoque.shared.infrastructure.sql_filtering import FieldDef, FieldType, build_filter
 
 ORDER_FIELDS = {
-    "name": "name",
-    "description": "description",
-    "shortdescription": "short_description",
-    "createdat": "created_at",
-    "updatedat": "updated_at",
-    "deletedat": "deleted_at",
+    "name": FieldDef("name", FieldType.STRING),
+    "description": FieldDef("description", FieldType.STRING),
+    "shortdescription": FieldDef("short_description", FieldType.STRING),
+    "createdat": FieldDef("created_at", FieldType.INSTANT),
+    "updatedat": FieldDef("updated_at", FieldType.INSTANT),
+    "deletedat": FieldDef("deleted_at", FieldType.INSTANT),
+    "id": FieldDef("id", FieldType.UUID),
+    "isdeleted": FieldDef("is_deleted", FieldType.BOOLEAN),
 }
 
 
